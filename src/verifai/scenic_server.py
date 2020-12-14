@@ -137,10 +137,8 @@ class ParallelScenicServer(ScenicServer):
         sampler = ScenicSampler.fromScenario(scenic_path)
         sampling_data.sampler = sampler
         super().__init__(sampling_data, monitor, options)
-        print(f'Sampler class is {type(self.sampler)}')
         self.sample_simulators = [SampleSimulator.remote(scenic_path, i, monitor, options)
         for i in range(self.total_workers)]
-        self.simulator_pool = ActorPool(self.sample_simulators)
 
     def _generate_next_sample(self):
         i = 0
