@@ -1,5 +1,6 @@
 # Scenic cache files
 *.snet
+*.swp
 
 # Webots temporary files
 .*.wbproj

@@ -13,7 +13,7 @@ sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
 MAX_ITERS = 10
-PORT = 8888
+PORT = 8000
 MAXREQS = 5
 BUFSIZE = 4096
 

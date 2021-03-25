@@ -4,7 +4,8 @@ import numpy as np
 
 import carla
 from agents.navigation.agent import *
-
+import sys
+sys.path.append('/home/carla_challenge/Desktop/wayne/VerifAI/src/verifai/simulators/carla/agents')
 from pid_follow_controller import *
 
 class LaneChange(IntEnum):

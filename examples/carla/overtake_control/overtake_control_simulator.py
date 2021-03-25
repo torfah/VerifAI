@@ -10,7 +10,7 @@ from verifai.simulators.carla.agents.pid_agent import *
 from verifai.simulators.carla.agents.overtake_agent import *
 
 # Falsifier (not CARLA) params
-PORT = 8888
+PORT = 8000
 BUFSIZE = 4096
 
 
@@ -54,17 +54,17 @@ class overtake_control_task(carla_task):
         }
 
         # Deterministic blueprint, spawnpoint.
-        other_blueprint = self.world.world.get_blueprint_library().find('vehicle.ford.mustang')
+        other_blueprint = 'vehicle.audi.a2'
         other_spawn = self.world.map.get_spawn_points()[1]
         other_location = other_spawn.location
         other_heading = other_spawn.get_forward_vector()
 
-        ego_blueprint = self.world.world.get_blueprint_library().find('vehicle.audi.tt')
+        ego_blueprint = 'vehicle.audi.tt'
         ego_location = other_location + init_conds.initial_dist[0] * other_heading
         ego_spawn = carla.Transform(ego_location, other_spawn.rotation)
         self.ego_vehicle = self.world.add_vehicle(PIDAgent,
                                                   control_params=pid_opt_dict,
-                                                  blueprint=ego_blueprint,
+                                                  blueprint_filter=ego_blueprint,
                                                   spawn=ego_spawn,
                                                   has_collision_sensor=True,
                                                   has_lane_sensor=False,
@@ -72,7 +72,7 @@ class overtake_control_task(carla_task):
 
         self.other_vehicle = self.world.add_vehicle(OvertakeAgent,
                                                     control_params=follow_opt_dict,
-                                                    blueprint=other_blueprint,
+                                                    blueprint_filter=other_blueprint,
                                                     spawn=other_spawn,
                                                     has_collision_sensor=True,
                                                     has_lane_sensor=False,
