@@ -67,7 +67,7 @@ class overtake_control_task(carla_task):
                                                   blueprint_filter=ego_blueprint,
                                                   spawn=ego_spawn,
                                                   has_collision_sensor=True,
-                                                  has_lane_sensor=False,
+                                                  has_lane_sensor=True,
                                                   ego=True)
 
         self.other_vehicle = self.world.add_vehicle(OvertakeAgent,
@@ -88,13 +88,16 @@ class overtake_control_task(carla_task):
 
         # MTL doesn't like empty lists.
         if not ego_collision:
-            ego_collision = [(0,0)]
+            ego_collision = [(0, -1)] #maybe change it to [(0, -1)]
         if not other_collision:
-            other_collision = [(0,0)]
-
+            other_collision = [(0, -1)] #maybe change it to [(0, -1)]
+        #print ('lane_invasion', self.world.ego.lane_sensor._history)
+        #print ('ego_collision', ego_collision)
+        #print ('other_collision', other_collision)
         traj = {
             'egocollision': ego_collision,
-            'othercollision': other_collision
+            'othercollision': other_collision,
+            'laneinvade': self.world.ego.lane_sensor._history
         }
         return traj
 

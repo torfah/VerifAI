@@ -1,7 +1,8 @@
 from verifai.features.features import *
 from verifai.falsifier import mtl_falsifier
 from dotmap import DotMap
-
+#import pandas
+#pandas.set_option("display.max_rows", None, "display.max_columns", None)
 init_conditions = Struct({
     'ego_target_speed': Box([15.0, 20.0]),
     'other_target_speed': Box([25.0, 30.0]),
@@ -17,7 +18,7 @@ PORT = 8000
 MAXREQS = 5
 BUFSIZE = 4096
 
-specification = ['G(~(egocollision | othercollision))']
+specification = ['G(~(egocollision | laneinvade | othercollision))']
 
 falsifier_params = DotMap()
 falsifier_params.n_iters = MAX_ITERS

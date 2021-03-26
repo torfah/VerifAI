@@ -59,6 +59,19 @@ class carla_task():
             while self.timestep < self.n_sim_steps:
                 self.step_world()
                 self.timestep += 1
+                #####
+                #world_snapshot = self.world.world.get_snapshot()
+                #time_step = world_snapshot.timestamp
+                #print (time_step)
+                #for actor_snapshot in world_snapshot:
+                #    actual_actor = self.world.world.get_actor(actor_snapshot.id)
+                #    transform = actor_snapshot.get_transform()
+                #    velocity = actor_snapshot.get_velocity()
+                #    ang_velocity = actor_snapshot.get_angular_velocity()
+                #    acc_velocity = actor_snapshot.get_acceleration()
+
+                #    print ("actual_actor", actual_actor.type_id, "transform", transform, "velocity", velocity, "ang_velocity", ang_velocity, "acc_velocity", acc_velocity)
+                #####
             traj = self.trajectory_definition()
         finally:
             self.world.destroy()
