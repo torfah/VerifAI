@@ -7,6 +7,7 @@ from dotmap import DotMap
 import carla
 
 from verifai.simulators.carla.agents.pid_agent import *
+from verifai.simulators.carla.agents.pid_safe_agent import *
 from verifai.simulators.carla.agents.overtake_agent import *
 
 # Falsifier (not CARLA) params
@@ -20,7 +21,7 @@ def norm(vec):
 
 class overtake_control_task(carla_task):
     def __init__(self,
-                 n_sim_steps=500,
+                 n_sim_steps=15000,
                  display_dim=(1280,720),
                  carla_host='127.0.0.1',
                  carla_port=2000,
@@ -62,7 +63,7 @@ class overtake_control_task(carla_task):
         ego_blueprint = 'vehicle.audi.tt'
         ego_location = other_location + init_conds.initial_dist[0] * other_heading
         ego_spawn = carla.Transform(ego_location, other_spawn.rotation)
-        self.ego_vehicle = self.world.add_vehicle(PIDAgent,
+        self.ego_vehicle = self.world.add_vehicle(PIDsafeAgent,
                                                   control_params=pid_opt_dict,
                                                   blueprint_filter=ego_blueprint,
                                                   spawn=ego_spawn,

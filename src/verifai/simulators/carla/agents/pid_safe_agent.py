@@ -1,17 +1,17 @@
 import carla
 from agents.navigation.agent import *
 from agents.navigation.controller import VehiclePIDController
-from agents.tools.misc import distance_vehicle, draw_waypoints
+from agents.tools.misc import distance_vehicle, draw_waypoints, get_speed
 
 import numpy as np
 
 '''Agent that follows road waypoints (prioritizing a straight
 trajectory if multiple options available) using longitudinal
 and lateral PID.'''
-class PIDAgent(Agent):
+class PIDsafeAgent(Agent):
 
     def __init__(self, vehicle, opt_dict=None):
-        super(PIDAgent, self).__init__(vehicle)
+        super(PIDsafeAgent, self).__init__(vehicle)
 
         # Default agent params:
         self.target_speed = 20.0
@@ -50,8 +50,10 @@ class PIDAgent(Agent):
 
         self.radius = self.target_speed / 18    # Radius at which next waypoint is sampled
         self.min_dist = 0.9 * self.radius  # If min_dist away from waypoint[0], move on to next one.
-
-
+        self.has_stopped = False
+        self.has_deviated = False
+        self.do_stop = False
+        self.old_target_speed = self.target_speed
     def add_next_waypoints(self):
         def d_angle(a, b):
             return abs((a - b + 180) % 360 - 180)
@@ -101,6 +103,32 @@ class PIDAgent(Agent):
         draw_waypoints(self._vehicle.get_world(),
                            self.waypoints[:1],
                            self._vehicle.get_location().z + 1.0)
+        control = self.controller.run_step(self.target_speed, self.waypoints[0])
 
-        return self.controller.run_step(self.target_speed, self.waypoints[0])
+        current_speed = get_speed(self._vehicle) 
+        v_loc = self._vehicle.get_transform().location
+        v_yaw = self._vehicle.get_transform().rotation.yaw
+        w_loc = self.waypoints[0].transform.location
+        w_yaw = self.waypoints[0].transform.rotation.yaw
+        dtc = math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform())
+        print ("v_loc", v_loc, "v_yaw", v_yaw, "w_loc", w_loc, "w_yaw", w_yaw, "dtc", dtc) 
+        print ("current speed", current_speed, "do stop", self.do_stop, "has stopped", self.has_stopped)
+        if dtc >= 1.0: self.has_deviated = True 
+        if self.has_deviated and not self.has_stopped: 
+            self.target_speed = 5.0
+            if current_speed < 0.05:
+                self.do_stop = False
+                self.has_stopped = True
+            else:
+                self.do_stop = True
+        if dtc < 0.2:
+            self.has_stopped = False
+            self.has_deviated = False 
+            self.target_speed = self.old_target_speed
+        if self.do_stop: 
+            control.throttle = 0.0
+            control.brake = 1.0
+            print ("brake")
+        
+        return control 
 
