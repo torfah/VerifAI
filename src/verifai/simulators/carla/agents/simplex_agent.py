@@ -21,6 +21,7 @@ class SimplexAgent(Agent):
         self.safe_controller = PIDsafeController(vehicle, safe_speed, opt_dict)
         self.advanced_controller = PIDadvancedController(vehicle, opt_dict)
         self.features = []
+        self.opt_dict = opt_dict
 
         self.waypoints = []
         self.max_waypoints = 200
@@ -28,6 +29,7 @@ class SimplexAgent(Agent):
         self.radius = self.target_speed / 18  
         self.min_dist = 0.9 * self.radius 
         self.isBack2Center =True 
+        self.timestamp = 0
     def add_next_waypoints(self):
         def d_angle(a, b):
             return abs((a - b + 180) % 360 - 180)
@@ -83,16 +85,17 @@ class SimplexAgent(Agent):
        # v_loc = self._vehicle.get_transform().location
         v_yaw = self._vehicle.get_transform().rotation.yaw
        # w_loc = waypoints.transform.location
-        w_yaw = self.waypoints[0].transform.rotation.yaw
-        dtc = math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform())
+        w_yaw = self.waypoints[0].transform.rotation.yaw #sometimes it gives -270 degrees, which is 90 degrees, add abs to dtc
+        dtc = abs( math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform()) )
         print ("dtc", dtc)
-        
+        self.opt_dict['dtc_history'].append((self.timestamp , dtc))
+
         do_AC = dtc < 1.0
 
         if do_AC and self.isBack2Center:
             control = self.advanced_controller.run_step(self.waypoints[0])
         else:
-            control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0])
-
+            control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
+        self.timestamp += 1
         return control 
 

@@ -138,7 +138,7 @@ class Vehicle(Entity):
     ''' Bundles up a CARLA Vehicle with its controller, blueprint, spawn point.'''
     def __init__(self, world, controller, control_params=None,
                  blueprint_filter='vehicle.*', spawn=None, physics=None,
-                 has_collision_sensor=False, has_lane_sensor=False, color=None, ego=False):
+                 has_collision_sensor=False, has_lane_sensor=False, has_dtc_sensor=False, color=None, ego=False):
         super().__init__(world, blueprint_filter,
                          spawn=spawn, color=color, ego=ego)
         self.ego = ego
@@ -147,6 +147,7 @@ class Vehicle(Entity):
         self.collision_sensor = None
         self.has_lane_sensor = has_lane_sensor
         self.lane_sensor = None
+        self.has_dtc_sensor = has_dtc_sensor
         self.controller = controller
         self.control_params = control_params
         self.control_agent = None
@@ -190,6 +191,8 @@ class Vehicle(Entity):
             self.actor.apply_physics_control(self.physics)
 
         if self.control_params:
+            if self.has_dtc_sensor:
+                self.control_params['dtc_history'] = []
             self.control_actor = self.controller(self.actor, self.control_params)
         else:
             self.control_actor = self.controller(self.actor)
@@ -223,7 +226,7 @@ class World(object):
     def add_vehicle(self, controller, control_params=None, 
                     blueprint_filter='vehicle.*', color=None,
                     spawn=None, physics=None, has_collision_sensor=False,
-                    has_lane_sensor=False, ego=False):
+                    has_lane_sensor=False, has_dtc_sensor=False, ego=False):
         '''
         Add vehicle to vehicles list with controller CONTROLLER, blueprint 
         BLUEPRINT and spawn point SPAWN. If EGO, this will be the ego vehicle 
@@ -234,7 +237,8 @@ class World(object):
                           blueprint_filter=blueprint_filter, color=color, 
                           spawn=spawn, physics=physics,
                           has_collision_sensor=has_collision_sensor,
-                          has_lane_sensor=has_lane_sensor, ego=ego)
+                          has_lane_sensor=has_lane_sensor, 
+                          has_dtc_sensor=has_dtc_sensor, ego=ego)
         self.entities.append(vehicle)
         if ego:
             self.ego = vehicle

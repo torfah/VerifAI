@@ -4,7 +4,7 @@ from dotmap import DotMap
 #import pandas
 #pandas.set_option("display.max_rows", None, "display.max_columns", None)
 init_conditions = Struct({
-    'ego_target_speed': Box([15.0, 20.0]),
+    'ego_target_speed': Box([65.0, 80.0]),
     'other_target_speed': Box([25.0, 30.0]),
     'initial_dist': Box([30.0, 40.0]),
     'clear_dist': Box([10.0, 15.0])
@@ -13,12 +13,12 @@ init_conditions = Struct({
 sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
-MAX_ITERS = 10
+MAX_ITERS = 1
 PORT = 8000
 MAXREQS = 5
 BUFSIZE = 4096
 
-specification = ['G(~(egocollision | laneinvade | othercollision))']
+specification = ['G(~(egocollision | othercollision))']
 
 falsifier_params = DotMap()
 falsifier_params.n_iters = MAX_ITERS

@@ -21,7 +21,7 @@ def norm(vec):
 
 class overtake_control_task(carla_task):
     def __init__(self,
-                 n_sim_steps=2500,
+                 n_sim_steps=500,
                  display_dim=(1280,720),
                  carla_host='127.0.0.1',
                  carla_port=2000,
@@ -68,7 +68,7 @@ class overtake_control_task(carla_task):
                                                   blueprint_filter=ego_blueprint,
                                                   spawn=ego_spawn,
                                                   has_collision_sensor=True,
-                                                  has_lane_sensor=True,
+                                                  has_dtc_sensor = True,
                                                   ego=True)
 
         self.other_vehicle = self.world.add_vehicle(OvertakeAgent,
@@ -92,13 +92,11 @@ class overtake_control_task(carla_task):
             ego_collision = [(0, -1)] #maybe change it to [(0, -1)]
         if not other_collision:
             other_collision = [(0, -1)] #maybe change it to [(0, -1)]
-        #print ('lane_invasion', self.world.ego.lane_sensor._history)
-        #print ('ego_collision', ego_collision)
-        #print ('other_collision', other_collision)
+        print ('dtc_history', self.ego_vehicle.control_params['dtc_history'])
         traj = {
             'egocollision': ego_collision,
             'othercollision': other_collision,
-            'laneinvade': self.world.ego.lane_sensor._history
+            'dtc': self.ego_vehicle.control_params['dtc_history'] 
         }
         return traj
 

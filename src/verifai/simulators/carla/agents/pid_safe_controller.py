@@ -40,10 +40,10 @@ class PIDsafeController():
         w_yaw = waypoint.transform.rotation.yaw
         dtc = math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(waypoint, vehicle.get_transform())
         return dtc
-    def run_step(self, waypoint):
+    def run_step(self, waypoint, dtc):
 
         current_speed = get_speed(self._vehicle) 
-        dtc = self._calc_dtc(self._vehicle, waypoint)
+
         isBack2Center = False
         control = self.controller.run_step(self.target_speed, waypoint)
         if not self.has_stopped: 
