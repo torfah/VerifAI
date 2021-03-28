@@ -152,11 +152,13 @@ class Server:
         self.send(sample)
         simulation_data = self.receive()
         self.close_connection()
-        value = (0 if self.monitor is None
-                 else self.monitor.evaluate(simulation_data))
-        return value
+        one_value = (0 if self.monitor is None
+                    else self.monitor.evaluate(simulation_data))
+        values = (0 if self.monitor is None
+                    else self.monitor.evaluate(simulation_data, is_fine_grained=True))
+        return one_value, values
 
     def run_server(self):
         sample = self.get_sample(self.lastValue)
-        self.lastValue = self.evaluate_sample(sample)
-        return sample, self.lastValue
+        self.lastValue, rhos = self.evaluate_sample(sample)
+        return sample, self.lastValue, rhos

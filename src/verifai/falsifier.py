@@ -19,7 +19,7 @@ class falsifier(ABC):
             save_error_table=True, save_safe_table=True,
             error_table_path=None, safe_table_path=None,
             n_iters=1000, ce_num_max=np.inf, fal_thres=0,
-            sampler_params=None, verbosity=2,
+            sampler_params=None, verbosity=2, n_sim_steps=500
         )
         if falsifier_params is not None:
             params.update(falsifier_params)
@@ -33,7 +33,7 @@ class falsifier(ABC):
         self.fal_thres = params.fal_thres
         self.sampler_params = params.sampler_params
         self.verbosity = params.verbosity
-
+        self.n_sim_steps = params.n_sim_steps
         server_params = DotMap(init=True)
         if server_options is not None:
             server_params.update(server_options)
@@ -84,19 +84,19 @@ class falsifier(ABC):
 
             if 'k_closest' in self.error_analysis:
                 self.error_analysis.k_closest_samples = \
-                    [self.samples[i] for i in self.error_analysis.k_closest]
+                    [self.samples[i//self.n_sim_steps] for i in self.error_analysis.k_closest]
             if 'random' in self.error_analysis:
                 self.error_analysis.random_samples = \
-                    [self.samples[i] for i in self.error_analysis.random]
+                    [self.samples[i//self.n_sim_steps] for i in self.error_analysis.random]
         if self.save_safe_table and (error is None or error is False):
             self.safe_analysis = self.safe_table.analyze(analysis_params)
 
             if 'k_closest' in self.safe_analysis:
                 self.safe_analysis.k_closest_samples = \
-                    [self.samples[i] for i in self.safe_analysis.k_closest]
+                    [self.samples[i//self.n_sim_steps] for i in self.safe_analysis.k_closest]
             if 'random' in self.safe_analysis:
                 self.safe_analysis.random_samples = \
-                    [self.samples[i] for i in self.safe_analysis.random]
+                    [self.samples[i//self.n_sim_steps] for i in self.safe_analysis.random]
 
     def run_falsifier(self):
         i = 0
@@ -105,26 +105,27 @@ class falsifier(ABC):
             if i == self.n_iters:
                 break
             try:
-                sample, rho = self.server.run_server()
+                sample, _, rhos = self.server.run_server()
             except TerminationException:
                 if self.verbosity >= 1:
                     print("Sampler has generated all possible samples")
                 break
             if self.verbosity >= 1:
-                print("Sample no: ", i, "\nSample: ", sample, "\nRho: ", rho)
+                print("Sample no: ", i, "\nSample: ", sample, "\nRho: ", rhos)
             self.samples[i] = sample
-            if isinstance(rho, (list, tuple)):
-                check_var = rho[-1]
-            else:
-                check_var = rho
-            if check_var <= self.fal_thres:
-                if self.save_error_table:
-                    self.populate_error_table(sample, rho)
-                ce_num = ce_num + 1
-                if ce_num >= self.ce_num_max:
-                    break
-            elif self.save_safe_table:
-                self.populate_error_table(sample, rho, error=False)
+            for r in rhos:
+                if isinstance(r, (list, tuple)):
+                    check_var = r[-1]
+                else:
+                    check_var = r
+                if check_var <= self.fal_thres:
+                    if self.save_error_table:
+                        self.populate_error_table(sample, r)
+                    ce_num = ce_num + 1
+                    if ce_num >= self.ce_num_max:
+                        break
+                elif self.save_safe_table:
+                    self.populate_error_table(sample, r, error=False)
             i += 1
         self.server.terminate()
 

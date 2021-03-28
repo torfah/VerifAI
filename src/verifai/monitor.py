@@ -18,5 +18,8 @@ class mtl_specification(specification_monitor):
                 mtl_spec = (mtl_spec & spec)
         super().__init__(mtl_spec)
 
-    def evaluate(self, traj):
-        return self.specification(traj)
+    def evaluate(self, traj, is_fine_grained=False):
+        if is_fine_grained:
+            return self.specification(traj, time=None)
+        else:
+            return self.specification(traj)

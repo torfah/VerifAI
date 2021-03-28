@@ -13,18 +13,19 @@ init_conditions = Struct({
 sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
-MAX_ITERS = 1
+MAX_ITERS = 2
 PORT = 8000
+N_SIM_STEP = 500
 MAXREQS = 5
 BUFSIZE = 4096
 
-specification = ['G(~(egocollision | othercollision))']
+specification = ['~(F[0, 10] dtc)']
 
 falsifier_params = DotMap()
 falsifier_params.n_iters = MAX_ITERS
 falsifier_params.compute_error_table = True
-falsifier_params.fal_thres = 0.0
-
+falsifier_params.fal_thres = -2.0
+falsifier_params.n_sim_steps = N_SIM_STEP
 server_options = DotMap(port=PORT, bufsize=BUFSIZE, maxreqs=MAXREQS)
 
 sampler_params = DotMap()

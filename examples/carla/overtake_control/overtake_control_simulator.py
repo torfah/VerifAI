@@ -13,7 +13,7 @@ from verifai.simulators.carla.agents.overtake_agent import *
 # Falsifier (not CARLA) params
 PORT = 8000
 BUFSIZE = 4096
-
+N_SIM_STEP = 500
 
 def norm(vec):
     return np.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
@@ -21,7 +21,7 @@ def norm(vec):
 
 class overtake_control_task(carla_task):
     def __init__(self,
-                 n_sim_steps=500,
+                 n_sim_steps=N_SIM_STEP,
                  display_dim=(1280,720),
                  carla_host='127.0.0.1',
                  carla_port=2000,
