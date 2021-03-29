@@ -39,7 +39,9 @@ class overtake_control_task(carla_task):
 
     def use_sample(self, sample):
         print('Sample:', sample)
-
+        iteration = sample[1]
+        sample = sample[0]
+        self.world.iteration = iteration
         init_conds = sample.init_conditions
         self.ego_target_speed = init_conds.ego_target_speed[0]
         self.other_target_speed = init_conds.other_target_speed[0]

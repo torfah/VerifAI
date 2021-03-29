@@ -105,7 +105,7 @@ class falsifier(ABC):
             if i == self.n_iters:
                 break
             try:
-                sample, _, rhos = self.server.run_server()
+                sample, _, rhos = self.server.run_server(i)
             except TerminationException:
                 if self.verbosity >= 1:
                     print("Sampler has generated all possible samples")

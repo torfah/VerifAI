@@ -125,13 +125,13 @@ class OvertakeAgent(PIDAgent):
         return (True, None)
         
 
-    def run_step(self):
+    def run_step(self, iteration):
         self_loc = self._vehicle.get_location()
         self_forward = self._vehicle.get_transform().get_forward_vector()
         is_clear, blocker = self.lane_clear(self_loc,
                                             min_dist=2.0*self.clear_dist,
                                             forward=self_forward)
-        super().run_step()
+        super().run_step(iteration)
         cur_w = self.waypoints[0]
         if self.lane_state != 0:
             speed = self.target_speed * 1.5

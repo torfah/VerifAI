@@ -158,7 +158,8 @@ class Server:
                     else self.monitor.evaluate(simulation_data, is_fine_grained=True))
         return one_value, values
 
-    def run_server(self):
+    def run_server(self, iteration):
         sample = self.get_sample(self.lastValue)
+        sample = tuple(( sample, iteration ))
         self.lastValue, rhos = self.evaluate_sample(sample)
-        return sample, self.lastValue, rhos
+        return sample[0], self.lastValue, rhos

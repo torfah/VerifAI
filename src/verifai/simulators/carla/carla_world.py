@@ -200,7 +200,7 @@ class Vehicle(Entity):
         return True
 
     def get_control(self):
-        control = self.control_actor.run_step()
+        control = self.control_actor.run_step(self.world.iteration)
         return control
 
 
@@ -222,7 +222,7 @@ class World(object):
         self.world.on_tick(hud.on_world_tick)
         self.cam_transform = cam_transform
         self.ego_images = []
-
+        self.iteration = None
     def add_vehicle(self, controller, control_params=None, 
                     blueprint_filter='vehicle.*', color=None,
                     spawn=None, physics=None, has_collision_sensor=False,
