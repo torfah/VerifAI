@@ -50,7 +50,9 @@ class SimplexAgent(Agent):
                 return
             self.waypoints.append(next_w)
 
-
+    def _write_features(self, iteration, dtc):
+        with open('{}.txt'.format(iteration), 'a') as f:
+            f.write('time {} dtc {}\n'.format(self.timestamp, dtc))
     def run_step(self, iteration):
         transform = self._vehicle.get_transform()
 
@@ -96,6 +98,7 @@ class SimplexAgent(Agent):
             control = self.advanced_controller.run_step(self.waypoints[0])
         else:
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
+        self._write_features(iteration, dtc)
         self.timestamp += 1
         return control 
 
