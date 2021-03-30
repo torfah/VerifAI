@@ -38,7 +38,7 @@ class PIDsafeController():
     def _calc_dtc(self, vehicle, waypoint):
         v_yaw = vehicle.get_transform().rotation.yaw
         w_yaw = waypoint.transform.rotation.yaw
-        dtc = math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(waypoint, vehicle.get_transform())
+        dtc = math.tan(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(waypoint, vehicle.get_transform())
         return dtc
     def run_step(self, waypoint, dtc):
 

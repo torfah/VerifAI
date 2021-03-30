@@ -89,7 +89,7 @@ class SimplexAgent(Agent):
         v_yaw = self._vehicle.get_transform().rotation.yaw
        # w_loc = waypoints.transform.location
         w_yaw = self.waypoints[0].transform.rotation.yaw #sometimes it gives -270 degrees, which is 90 degrees, add abs to dtc
-        dtc = abs( math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform()) )
+        dtc = abs( math.tan(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform()) )
         print ("dtc", dtc)
         self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
 
