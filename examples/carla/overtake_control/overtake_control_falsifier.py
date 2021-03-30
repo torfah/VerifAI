@@ -3,6 +3,8 @@ from verifai.falsifier import mtl_falsifier
 from dotmap import DotMap
 from config import *
 import pandas
+import os
+os.system(f'rm {SIM_DIR}/*.log')
 #pandas.set_option("display.max_rows", None, "display.max_columns", None)
 init_conditions = Struct({
     'ego_target_speed': Box([65.0, 80.0]),
@@ -14,7 +16,7 @@ init_conditions = Struct({
 sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
-MAX_ITERS = 2
+MAX_ITERS = 3
 MAXREQS = 5
 
 specification = ['~(F[0, 10] dtc)']
@@ -46,5 +48,4 @@ print(falsifier.error_table.table)
 print("Safe Samples")
 print(falsifier.safe_table.table)
 
-error_and_safe_df = pandas.concat([falsifier.error_table.table, falsifier.safe_table.table], axis=0)
-error_and_safe_df.to_csv(f'{SIM_DIR}/falsifier.csv')
+falsifier.error_table.table.to_csv(f'{SIM_DIR}/falsifier.csv')

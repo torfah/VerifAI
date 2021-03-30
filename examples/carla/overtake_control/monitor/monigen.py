@@ -3,10 +3,13 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-from dt_learner import *
+from monitor.dt_learner import *
 import csv
+from config import *
 def log_to_csv(log_fname):
     csv_fname = log_fname.replace('.log', '.csv')
+    table_fname = log_fname.replace('.log', '_error_table.csv')
+    os.system(f"rm {csv_fname}")
     with open(log_fname, 'r') as lf:
         first_line = lf.readline()
         first_line = first_line.strip().split()
@@ -14,20 +17,48 @@ def log_to_csv(log_fname):
         for i in range(len(first_line)):
             if i % 2 == 0:
                 fieldnames.append(first_line[i])
+    fieldnames.append('safe')
+    with open(log_fname, 'r') as lf, open(table_fname, 'r') as tf:
         with open(csv_fname, 'w') as cf:
             writer = csv.DictWriter(cf, fieldnames=fieldnames)
+            writer.writeheader()
             lines = lf.readlines()
-            for line in lines:
-                line = line.strip().split()
+            verdict_lines = tf.readlines()
+            for i in range(len(lines)):
+                line = lines[i].strip().split()
                 even = line[::2]
                 odd = line[1::2]
                 line_dict = dict(zip(iter(even), iter(odd)))
-                print (line_dict)
-                sys.exit()
 
+                verdict_line = verdict_lines[i].strip().split(',')
+                line_dict['safe'] = verdict_line[-1]
+                writer.writerow(line_dict)
+    return csv_fname
+def write_error_table(f_index, output):
+    with open(f'{SIM_DIR}/{f_index}_error_table.csv', 'a')  as f:
+        for j in range(N_SIM_STEP):
+            if output[j] == 0: tmp = False
+            else: tmp = True
+            f.write(f'{j},{tmp}\n')
 
+def process_error_tables():
+    table_df = pd.read_csv(f'{SIM_DIR}/falsifier.csv')
+    table_df = table_df[['rho', 'rho_0']]
+    os.system(f"rm {SIM_DIR}/*_error_table.csv")
+    last_time = -1
+    output = np.ones((N_SIM_STEP, 1))
+    i = 0
+    for index, row in table_df.iterrows():
+        time = int(row['rho_0']) % N_SIM_STEP
+        output[time] = 0
+        if time < last_time:
+            i = int(row['rho_0']) // N_SIM_STEP
+            write_error_table(i-1, output)
+            output = np.ones((N_SIM_STEP, 1))
+            output[time] = 0
+        last_time = time
+    write_error_table(i, output)
 def create_training_data(csv_file_path, input_window, horizon, decision_window, columns, training_columns, condition):
-
         data = pd.read_csv(csv_file_path)       
 
         # Prepare training dataframe 
@@ -37,11 +68,10 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
                         training_data_columns.append(f"{c}@{i}")
         training_data_columns.append("flag")
         training_data = pd.DataFrame(columns=training_data_columns)
-        
         # Iterate over data: for each sliding window of size input_window look horzion many steps into the future and check condition over decision window.
         # label sequence of data input window according to condition 
         for i in range(len(data) - (decision_window + horizon + input_window -1)):
-                
+                if i % 20 == 0: print (i) 
                 # collect data within an input_window
                 current_input_window_data = pd.DataFrame(columns= columns)
                 for j in range(i,i + input_window):
@@ -67,7 +97,8 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
                 # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
                 panda_entry = pd.DataFrame([entry], columns=training_data_columns)
                 training_data = training_data.append(panda_entry,ignore_index=True)
-                
+        print (training_data) 
+        sys.exit()
                 
                                  
         # print(training_data)
@@ -130,6 +161,7 @@ def create_monitor_wrapper(dt_import_path):
 
 def generate(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2):
         # Iterate over all simulation files
+        process_error_tables()
         simulation_files = os.listdir(f"{data_dir}")
         training_data_list = []
         for f in simulation_files:
@@ -159,12 +191,12 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
 
 
 # DEBUGGING 
-columns = ['time','day_time','lat','lon','cte','he','pre_cte','pre_he','clouds','rain','pos']
-training_columns = ['day_time','lat','lon','clouds','pos']
-data_dir = "/home/carla_challenge/Desktop/wayne/VerifAI/examples/carla/overtake_control/simpath"
+columns = ['time', 'dtc']
+training_columns = ['time', 'dtc']
+data_dir = SIM_DIR 
 
 def condition(df):
-    return (abs(df['cte'])<2.5).any()
+    return (abs(df['dtc'])<2.5).any()
 
 generate(data_dir,columns,training_columns, condition,10,3,3)
 

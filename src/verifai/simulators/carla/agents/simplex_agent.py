@@ -52,7 +52,7 @@ class SimplexAgent(Agent):
             self.waypoints.append(next_w)
 
     def _write_features(self, iteration, dtc):
-        with open('/home/carla_challenge/Desktop/wayne/VerifAI/examples/carla/overtake_control/simpath/{}.log'.format(iteration), 'a') as f:
+        with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
             f.write('time {} dtc {}\n'.format(self.timestamp, dtc))
     def run_step(self, iteration):
         transform = self._vehicle.get_transform()
