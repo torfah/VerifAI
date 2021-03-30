@@ -4,6 +4,26 @@ import numpy as np
 import os
 import sys
 from dt_learner import *
+import csv
+def log_to_csv(log_fname):
+    csv_fname = log_fname.replace('.log', '.csv')
+    with open(log_fname, 'r') as lf:
+        first_line = lf.readline()
+        first_line = first_line.strip().split()
+        fieldnames = []
+        for i in range(len(first_line)):
+            if i % 2 == 0:
+                fieldnames.append(first_line[i])
+        with open(csv_fname, 'w') as cf:
+            writer = csv.DictWriter(cf, fieldnames=fieldnames)
+            lines = lf.readlines()
+            for line in lines:
+                line = line.strip().split()
+                even = line[::2]
+                odd = line[1::2]
+                line_dict = dict(zip(iter(even), iter(odd)))
+                print (line_dict)
+                sys.exit()
 
 
 def create_training_data(csv_file_path, input_window, horizon, decision_window, columns, training_columns, condition):
@@ -116,6 +136,7 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
                 if f.endswith(".log"):
                         print(f"Creating training data from {f} ...")
                         file_path = f"{data_dir}/{f}"
+                        file_path = log_to_csv(file_path)
                         training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
         
         os.system(f"rm -r {data_dir}/training_data")

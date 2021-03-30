@@ -7,6 +7,7 @@ from verifai.simulators.carla.agents.pid_advanced_controller import *
 from verifai.simulators.carla.agents.pid_safe_controller import *
 import numpy as np
 import sys
+from examples.carla.overtake_control.config import *
 '''Agent that follows road waypoints (prioritizing a straight
 trajectory if multiple options available) using longitudinal
 and lateral PID.'''
@@ -90,7 +91,7 @@ class SimplexAgent(Agent):
         w_yaw = self.waypoints[0].transform.rotation.yaw #sometimes it gives -270 degrees, which is 90 degrees, add abs to dtc
         dtc = abs( math.sin(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform()) )
         print ("dtc", dtc)
-        self.opt_dict['dtc_history'].append((self.timestamp , dtc))
+        self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
 
         do_AC = dtc < 1.0
 

@@ -1,6 +1,7 @@
 from verifai.features.features import *
 from verifai.falsifier import mtl_falsifier
 from dotmap import DotMap
+from config import *
 #import pandas
 #pandas.set_option("display.max_rows", None, "display.max_columns", None)
 init_conditions = Struct({
@@ -14,17 +15,14 @@ sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
 MAX_ITERS = 2
-PORT = 8000
-N_SIM_STEP = 500
 MAXREQS = 5
-BUFSIZE = 4096
 
 specification = ['~(F[0, 10] dtc)']
 
 falsifier_params = DotMap()
 falsifier_params.n_iters = MAX_ITERS
 falsifier_params.compute_error_table = True
-falsifier_params.fal_thres = -2.0
+falsifier_params.fal_thres = FALSE_THRESHOLD 
 falsifier_params.n_sim_steps = N_SIM_STEP
 server_options = DotMap(port=PORT, bufsize=BUFSIZE, maxreqs=MAXREQS)
 

@@ -9,11 +9,8 @@ import carla
 from verifai.simulators.carla.agents.pid_agent import *
 from verifai.simulators.carla.agents.simplex_agent import *
 from verifai.simulators.carla.agents.overtake_agent import *
-
+from examples.carla.overtake_control.config import *
 # Falsifier (not CARLA) params
-PORT = 8000
-BUFSIZE = 4096
-N_SIM_STEP = 500
 
 def norm(vec):
     return np.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
