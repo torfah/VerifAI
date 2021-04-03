@@ -41,27 +41,17 @@ class overtake_control_task(carla_task):
         self.world.iteration = iteration
         init_conds = sample.init_conditions
         self.ego_target_speed = init_conds.ego_target_speed[0]
-        self.other_target_speed = init_conds.other_target_speed[0]
 
         # PID controller parameters
         pid_opt_dict = {
             'target_speed': self.ego_target_speed,
         }
 
-        follow_opt_dict = {
-            'target_speed': self.other_target_speed,
-            'clear_dist': init_conds.clear_dist[0]
-        }
-
         # Deterministic blueprint, spawnpoint.
-        other_blueprint = 'vehicle.audi.a2'
-        other_spawn = self.world.map.get_spawn_points()[1]
-        other_location = other_spawn.location
-        other_heading = other_spawn.get_forward_vector()
+        ego_blueprint = 'vehicle.audi.a2'
+        ego_spawn = self.world.map.get_spawn_points()[1]
+        ego_location = ego_spawn.location
 
-        ego_blueprint = 'vehicle.audi.tt'
-        ego_location = other_location + init_conds.initial_dist[0] * other_heading
-        ego_spawn = carla.Transform(ego_location, other_spawn.rotation)
         self.ego_vehicle = self.world.add_vehicle(SimplexAgent,
                                                   control_params=pid_opt_dict,
                                                   blueprint_filter=ego_blueprint,
@@ -70,31 +60,17 @@ class overtake_control_task(carla_task):
                                                   has_dtc_sensor = True,
                                                   ego=True)
 
-        self.other_vehicle = self.world.add_vehicle(OvertakeAgent,
-                                                    control_params=follow_opt_dict,
-                                                    blueprint_filter=other_blueprint,
-                                                    spawn=other_spawn,
-                                                    has_collision_sensor=True,
-                                                    has_lane_sensor=False,
-                                                    ego=False)
-
-
     def trajectory_definition(self):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)
                          for c in self.ego_vehicle.collision_sensor.get_collision_speeds()]
-        other_collision = [(c[0], c[1] / self.other_target_speed)
-                           for c in self.other_vehicle.collision_sensor.get_collision_speeds()]
 
         # MTL doesn't like empty lists.
         if not ego_collision:
-            ego_collision = [(0, -1)] #maybe change it to [(0, -1)]
-        if not other_collision:
-            other_collision = [(0, -1)] #maybe change it to [(0, -1)]
+            ego_collision = [(0, -1)]
         print ('dtc_history', self.ego_vehicle.control_params['dtc_history'])
         traj = {
             'egocollision': ego_collision,
-            'othercollision': other_collision,
             'dtc': self.ego_vehicle.control_params['dtc_history'] 
         }
         return traj

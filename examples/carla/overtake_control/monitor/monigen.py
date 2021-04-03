@@ -97,8 +97,6 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
                 # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
                 panda_entry = pd.DataFrame([entry], columns=training_data_columns)
                 training_data = training_data.append(panda_entry,ignore_index=True)
-        print (training_data) 
-        sys.exit()
                 
                                  
         # print(training_data)
@@ -181,24 +179,22 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
                         feature_names = list(training_data_list[i].columns)[:-1]
                 else:
                         training_data_list[i].to_csv(f"{data_dir}/training_data/training_data_{i}.csv",index=False,header=False)
-        os.system(f"rm {data_dir}/training_data/training_data.csv")
         os.system(f"cat {data_dir}/training_data/*csv > {data_dir}/training_data/training_data.csv")
-        # os.system("open training_data.csv")
 
-        dt_learner.learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, "dt",True, data_dir)
+        learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, "dt",False, data_dir)
 
         create_monitor_wrapper(data_dir)
 
 
 # DEBUGGING 
-columns = ['time', 'dtc']
+columns = ['time', 'dtc', 'safe']
 training_columns = ['time', 'dtc']
 data_dir = SIM_DIR 
 
 def condition(df):
-    return (abs(df['dtc'])<2.5).any()
+    return (df['safe'] == False).any()
 
-generate(data_dir,columns,training_columns, condition,10,3,3)
+generate(data_dir,columns,training_columns, condition,3,3,3)
 
 
 
