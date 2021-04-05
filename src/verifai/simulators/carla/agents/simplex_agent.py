@@ -22,7 +22,7 @@ class SimplexAgent(Agent):
                 self.target_speed = opt_dict['target_speed']
         self.safe_controller = PIDsafeController(vehicle, safe_speed, opt_dict)
         self.advanced_controller = PIDadvancedController(vehicle, opt_dict)
-        self.features = []
+        self.features = {}
         self.opt_dict = opt_dict
 
         self.waypoints = []
@@ -52,9 +52,11 @@ class SimplexAgent(Agent):
                 return
             self.waypoints.append(next_w)
 
-    def _write_features(self, iteration, dtc):
+    def _write_features(self, iteration):
         with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
-            f.write('time {} dtc {}\n'.format(self.timestamp, dtc))
+            for key in self.features:
+                f.write(f'{key} {self.features[key]} ')
+            f.write('\n')
     def run_step(self, iteration):
         transform = self._vehicle.get_transform()
 
@@ -84,23 +86,40 @@ class SimplexAgent(Agent):
                            self.waypoints[:1],
                            self._vehicle.get_location().z + 1.0)
 
-        #do_AC = decision_tree(self.features)
-        
-       # v_loc = self._vehicle.get_transform().location
-        v_yaw = self._vehicle.get_transform().rotation.yaw
-       # w_loc = waypoints.transform.location
-        w_yaw = self.waypoints[0].transform.rotation.yaw #sometimes it gives -270 degrees, which is 90 degrees, add abs to dtc
-        dtc = abs( math.tan(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(self.waypoints[0], self._vehicle.get_transform()) )
-        print ("dtc", dtc)
-        self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
-
-        do_AC = simplex_monitor.check({'time': self.timestamp, 'dtc' : dtc}, 3, False) 
-
+        dtc = self.get_features_and_return_dtc(iteration)
+        do_AC = simplex_monitor.check(self.features, 10, False) 
+        print ("do_AC", do_AC)
         if do_AC and self.isBack2Center:
             control = self.advanced_controller.run_step(self.waypoints[0])
         else:
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
-        self._write_features(iteration, dtc)
+        self._write_features(iteration)
         self.timestamp += 1
         return control 
 
+    def get_features_and_return_dtc(self, iteration):
+        get_scalar = lambda vec: 3.6 * math.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
+
+        v_yaw = self._vehicle.get_transform().rotation.yaw
+        if v_yaw < 0: v_yaw += 360
+        self.features['v'] = get_scalar(self._vehicle.get_velocity())
+        self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
+        self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
+        dtc = 0
+        for i in range(2, -1, -1):
+            waypoint = self.waypoints[i]
+            w_yaw = waypoint.transform.rotation.yaw 
+            if w_yaw < 0: w_yaw += 360
+
+            diff_yaw = abs(math.tan(math.radians( abs(v_yaw - w_yaw) )))
+            distance = distance_vehicle(waypoint, self._vehicle.get_transform())
+            dtc = diff_yaw * distance 
+            self.features[f'waypoint_{i}_dyaw'] = diff_yaw
+            self.features[f'waypoint_{i}_dist'] = distance
+            self.features[f'waypoint_{i}_dtc'] = dtc
+        
+        #projected_w = self._vehicle.get_world().get_map().get_waypoint(self._vehicle.get_transform().location, project_to_road=True) 
+        #dtc = distance_vehicle(projected_w, self._vehicle.get_transform())
+        print ("dtc", dtc)
+        self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
+        return dtc

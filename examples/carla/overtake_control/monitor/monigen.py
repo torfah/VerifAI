@@ -110,7 +110,7 @@ def create_monitor_wrapper(dt_import_path):
         indent = "      "
         # imports
         code_file.write("import importlib\n")
-        code_file.write(f"from dt import dt\n\n")
+        code_file.write(f"from examples.carla.overtake_control.simpath.dt import dt\n\n")
         
         # global variables 
         code_file.write("window_data = [] \n")
@@ -130,7 +130,7 @@ def create_monitor_wrapper(dt_import_path):
         code_file.write(indent+"if window_fill_size < input_window:\n")
         code_file.write(indent+indent+"# expand window_data with input_map\n")
         code_file.write(indent+indent+"window_data.append(input_map)\n")
-        code_file.write(indent+indent+"return False\n\n")
+        code_file.write(indent+indent+"return True\n\n")
 
         # Implement FIFO
         code_file.write(indent+"# FIFO behavior: Buffer of size input_window\n")
@@ -144,7 +144,7 @@ def create_monitor_wrapper(dt_import_path):
         code_file.write(indent+indent+indent+"for key in window_data[i].keys():\n")
         code_file.write(indent+indent+indent+indent+"name = f\"{key}@{i}\"\n")
         code_file.write(indent+indent+indent+indent+"dt_map[name] = window_data[i][key]\n\n")
-        code_file.write(indent+"print(dt_map)\n\n")
+        code_file.write(indent+"#print(dt_map)\n\n")
 
         # reload dt
         code_file.write(indent+"# import decision tree\n")
@@ -157,16 +157,91 @@ def create_monitor_wrapper(dt_import_path):
         
         code_file.close()
 
+def process_log_files():
+    simulation_files = os.listdir(f"{data_dir}")
+    for f in simulation_files:
+        if f.endswith(".log"):
+            file_path = f"{data_dir}/{f}"
+            file_path = log_to_csv(file_path)
+def move_csv_files():
+    max_iter = -1
+    simulation_files = os.listdir(f"{data_dir}")
+    for f in simulation_files:
+        if f.endswith("_run"):
+            iteration = f.split("_")[0]
+            max_iter = max([max_iter, int( iteration )])
+    folder_name = f'{max_iter+1}_run'
+    os.system(f'mkdir {data_dir}/{folder_name}')
+    os.system(f'mv {data_dir}/*.csv {data_dir}/{folder_name}')
+    
+def remove_files():
+    simulation_files = os.listdir(f"{data_dir}")
+    for f in simulation_files:
+        if f.endswith("_error_table.csv") or f.endswith(".log") or f.endswith("falsifier.csv"):
+            file_path = f"{data_dir}/{f}"
+            os.system(f'rm {file_path}')
+    move_csv_files()
+def get_max_run_iter():
+    simulation_files = os.listdir(f"{data_dir}")
+    max_iter = -1
+    for f in simulation_files:
+        if f.endswith("_run"):
+            iteration = f.split("_")[0]
+            max_iter = max([max_iter, int( iteration )])
+    return max_iter
+def get_training_data_max_index():
+    training_data_files = os.listdir(f"{data_dir}/training_data")
+    max_iter = -1
+    for f in training_data_files:
+        if f.startswith("training_data_"):
+            iteration = f.split("_")[-1]
+            iteration = iteration.split(".csv")[0]
+            max_iter = max([max_iter, int( iteration )])
+    return max_iter
+
 def generate(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2):
-        # Iterate over all simulation files
+    # Iterate over all simulation files
+    if os.path.exists(f'{data_dir}/falsifier.csv'): 
         process_error_tables()
+        process_log_files()
+        remove_files()
+    training_data_list = []
+    f = str( get_max_run_iter() ) + "_run"
+    sub_files = os.listdir(f"{data_dir}/{f}")
+    for sf in sub_files:
+        if sf.endswith(".csv"):
+            print(f"Creating training data from {f}/{sf} ...")
+            file_path = f"{data_dir}/{f}/{sf}"
+            training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
+    start_index = get_training_data_max_index() + 1
+    feature_names = []
+    class_names = ['flag']
+    for i in range(len(training_data_list)):
+        training_data_list[i].to_csv(f"{data_dir}/training_data/training_data_{i+start_index}.csv",index=False,header=False)
+        if i ==0:
+            feature_names = list(training_data_list[i].columns)[:-1]
+    os.system(f"rm {data_dir}/training_data/training_data.csv")
+    os.system(f"cat {data_dir}/training_data/*csv > {data_dir}/training_data/training_data.csv")
+
+    learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, "dt",False, data_dir)
+
+    create_monitor_wrapper(data_dir)
+
+def generate_from_scratch(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2):
+        # Iterate over all simulation files
+        if os.path.exists(f'{data_dir}/falsifier.csv'): 
+            process_error_tables()
+            process_log_files()
+            remove_files()
         simulation_files = os.listdir(f"{data_dir}")
         training_data_list = []
         for f in simulation_files:
-                if f.endswith(".log"):
-                        print(f"Creating training data from {f} ...")
-                        file_path = f"{data_dir}/{f}"
-                        file_path = log_to_csv(file_path)
+            if f.endswith("_run"):
+                sub_files = os.listdir(f"{data_dir}/{f}")
+                for sf in sub_files:
+                    if sf.endswith(".csv"):
+                        print(f"Creating training data from {f}/{sf} ...")
+                        file_path = f"{data_dir}/{f}/{sf}"
                         training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
         
         os.system(f"rm -r {data_dir}/training_data")
@@ -187,14 +262,15 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
 
 
 # DEBUGGING 
-columns = ['time', 'dtc', 'safe']
-training_columns = ['time', 'dtc']
+columns = ['v', 'acc', 'ang_v', 'waypoint_2_dyaw', 'waypoint_2_dist', 'waypoint_2_dtc','waypoint_1_dyaw', 'waypoint_1_dist', 'waypoint_1_dtc', 'waypoint_0_dyaw', 'waypoint_0_dist', 'waypoint_0_dtc', 'safe']
+training_columns = ['v', 'acc', 'ang_v', 'waypoint_2_dyaw', 'waypoint_2_dist', 'waypoint_2_dtc','waypoint_1_dyaw', 'waypoint_1_dist', 'waypoint_1_dtc', 'waypoint_0_dyaw', 'waypoint_0_dist', 'waypoint_0_dtc'] 
 data_dir = SIM_DIR 
 
 def condition(df):
     return (df['safe'] == False).any()
 
-generate(data_dir,columns,training_columns, condition,3,3,3)
+generate(data_dir,columns,training_columns, condition,10,5,5)
+#generate_from_scratch(data_dir,columns,training_columns, condition,10,5,5)
 
 
 
