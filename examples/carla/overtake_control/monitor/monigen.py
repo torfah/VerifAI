@@ -217,7 +217,6 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
             print(f"Creating training data from {f}/{sf} ...")
             file_path = f"{data_dir}/{f}/{sf}"
             training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
-            sys.exit()
     start_index = get_training_data_max_index() + 1
     feature_names = []
     class_names = ['flag']
