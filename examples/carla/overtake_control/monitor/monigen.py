@@ -40,24 +40,28 @@ def write_error_table(f_index, output):
             if output[j] == 0: tmp = False
             else: tmp = True
             f.write(f'{j},{tmp}\n')
-
+def read_target_speeds():
+    init_log = list()
+    with open(f'{SIM_DIR}/init.log', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip().split()
+            init_log.append( [ int(line[0]), float(line[1]) ] )
+    return init_log
 def process_error_tables():
+    init_log = read_target_speeds()
     table_df = pd.read_csv(f'{SIM_DIR}/falsifier.csv')
-    table_df = table_df[['rho', 'rho_0']]
+    table_df = table_df[['point.init_conditions.ego_target_speed[0]', 'rho_0']]
     os.system(f"rm {SIM_DIR}/*_error_table.csv")
-    last_time = -1
-    output = np.ones((N_SIM_STEP, 1))
-    i = 0
-    for index, row in table_df.iterrows():
-        time = int(row['rho_0']) % N_SIM_STEP
-        output[time] = 0
-        if time < last_time:
-            i = int(row['rho_0']) // N_SIM_STEP
-            write_error_table(i-1, output)
-            output = np.ones((N_SIM_STEP, 1))
+    for sample in init_log:
+        output = np.ones((N_SIM_STEP, 1))
+        i = sample[0]
+        speed = sample[1]
+        for index, row in table_df.iterrows():
+            if abs(float(row['point.init_conditions.ego_target_speed[0]'])-speed) > 1e-13: continue
+            time = int(row['rho_0']) % N_SIM_STEP
             output[time] = 0
-        last_time = time
-    write_error_table(i, output)
+        write_error_table(i, output)
 def create_training_data(csv_file_path, input_window, horizon, decision_window, columns, training_columns, condition):
         data = pd.read_csv(csv_file_path)       
 
@@ -160,7 +164,7 @@ def create_monitor_wrapper(dt_import_path):
 def process_log_files():
     simulation_files = os.listdir(f"{data_dir}")
     for f in simulation_files:
-        if f.endswith(".log"):
+        if f.endswith(".log") and not f.startswith('init'):
             file_path = f"{data_dir}/{f}"
             file_path = log_to_csv(file_path)
 def move_csv_files():
@@ -213,6 +217,7 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
             print(f"Creating training data from {f}/{sf} ...")
             file_path = f"{data_dir}/{f}/{sf}"
             training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
+            sys.exit()
     start_index = get_training_data_max_index() + 1
     feature_names = []
     class_names = ['flag']

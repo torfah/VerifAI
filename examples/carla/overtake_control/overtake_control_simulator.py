@@ -65,16 +65,18 @@ class overtake_control_task(carla_task):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)
                          for c in self.ego_vehicle.collision_sensor.get_collision_speeds()]
-
+        lane_invasion = self.ego_vehicle.lane_sensor._history.copy()
         # MTL doesn't like empty lists.
         if not ego_collision:
             ego_collision = [(0, -1)]
-        print ('lane_invasion', self.world.ego.lane_sensor._history)
+        if not lane_invasion:
+            lane_invasion = [(0, -1)]
+        print ('lane_invasion', lane_invasion)
         print ('egocollision', ego_collision)
         traj = {
             'egocollision': ego_collision,
             #'dtc': self.ego_vehicle.control_params['dtc_history'] 
-            'laneinvade': self.world.ego.lane_sensor._history
+            'laneinvade': lane_invasion 
         }
         return traj
 

@@ -5,7 +5,7 @@ from dotmap import DotMap
 from verifai.monitor import mtl_specification, specification_monitor
 from verifai.error_table import error_table
 import numpy as np
-
+from config import SIM_DIR
 class falsifier(ABC):
     def __init__(self, monitor, sampler_type=None, sampler=None, sample_space=None,
                  falsifier_params=None, server_options={}, server_class=Server):
@@ -112,6 +112,8 @@ class falsifier(ABC):
                 break
             if self.verbosity >= 1:
                 print("Sample no: ", i, "\nSample: ", sample, "\nRho: ", rhos)
+                with open(f'{SIM_DIR}/init.log', 'a') as f:
+                    f.write(f'{i} {sample.init_conditions.ego_target_speed[0]}\n')
             self.samples[i] = sample
             for r in rhos:
                 if isinstance(r, (list, tuple)):
