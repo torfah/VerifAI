@@ -57,6 +57,7 @@ class overtake_control_task(carla_task):
                                                   blueprint_filter=ego_blueprint,
                                                   spawn=ego_spawn,
                                                   has_collision_sensor=True,
+                                                  has_lane_sensor=True,
                                                   has_dtc_sensor = True,
                                                   ego=True)
 
@@ -68,10 +69,12 @@ class overtake_control_task(carla_task):
         # MTL doesn't like empty lists.
         if not ego_collision:
             ego_collision = [(0, -1)]
-        print ('dtc_history', self.ego_vehicle.control_params['dtc_history'])
+        print ('lane_invasion', self.world.ego.lane_sensor._history)
+        print ('egocollision', ego_collision)
         traj = {
             'egocollision': ego_collision,
-            'dtc': self.ego_vehicle.control_params['dtc_history'] 
+            #'dtc': self.ego_vehicle.control_params['dtc_history'] 
+            'laneinvade': self.world.ego.lane_sensor._history
         }
         return traj
 

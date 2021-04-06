@@ -42,7 +42,7 @@ import numpy as np
 
 import carla
 from carla import ColorConverter as cc
-
+from examples.carla.overtake_control.config import N_SIM_STEP 
 
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
@@ -222,7 +222,8 @@ class World(object):
         self.world.on_tick(hud.on_world_tick)
         self.cam_transform = cam_transform
         self.ego_images = []
-        self.iteration = None
+        self.iteration = None # VerifAI iteration
+        self.timestep = 0 #cala_task timestep, different from pygame timestamp
     def add_vehicle(self, controller, control_params=None, 
                     blueprint_filter='vehicle.*', color=None,
                     spawn=None, physics=None, has_collision_sensor=False,
@@ -279,6 +280,7 @@ class World(object):
 
     def tick(self, clock):
         self.hud.tick(self, clock)
+        self.hud.timestep = self.timestep + self.iteration*N_SIM_STEP
 
     def render(self, display):
         self.camera_manager.render(display)
@@ -315,6 +317,7 @@ class HUD(object):
         self.simulation_time = 0
         self._info_text = []
         self._server_clock = pygame.time.Clock()
+        self.timestep = 0
 
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
@@ -498,7 +501,7 @@ class CollisionSensor(object):
                                    % (actor_type, event.other_actor.id))
         impulse = event.normal_impulse
         intensity = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
-        self._history.append((event.frame, intensity))
+        self._history.append((self._hud.timestep, intensity))
         if len(self._history) > 4000:
             self._history.pop(0)
 
@@ -529,7 +532,7 @@ class LaneInvasionSensor(object):
         text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
         if self._hud:
             self._hud.notification('Crossed line %s' % ' and '.join(text))
-        self._history.append((event.frame, 1))
+        self._history.append((self._hud.timestep, 1))
 
 
 # ==============================================================================
