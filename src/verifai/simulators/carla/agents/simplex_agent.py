@@ -87,12 +87,12 @@ class SimplexAgent(Agent):
                            self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc(iteration)
-        do_AC = simplex_monitor.check(self.features, 10, False) 
-        print ("do_AC", do_AC)
+        do_AC = simplex_monitor.check(self.features, 15, False) 
         if do_AC and self.isBack2Center:
             control = self.advanced_controller.run_step(self.waypoints[0])
         else:
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
+            print ("do_SC", dtc)
         self._write_features(iteration)
         self.timestamp += 1
         return control 
@@ -120,6 +120,5 @@ class SimplexAgent(Agent):
         
         #projected_w = self._vehicle.get_world().get_map().get_waypoint(self._vehicle.get_transform().location, project_to_road=True) 
         #dtc = distance_vehicle(projected_w, self._vehicle.get_transform())
-        print ("dtc", dtc)
-        self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
+        #self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
         return dtc

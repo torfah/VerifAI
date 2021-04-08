@@ -23,7 +23,7 @@ class overtake_control_task(carla_task):
                  carla_host='127.0.0.1',
                  carla_port=2000,
                  carla_timeout=4.0,
-                 world_map='Town03'):
+                 world_map='Town02'):
         super().__init__(
             n_sim_steps=n_sim_steps,
             display_dim=display_dim,

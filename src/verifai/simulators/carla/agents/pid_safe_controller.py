@@ -47,14 +47,14 @@ class PIDsafeController():
         isBack2Center = False
         control = self.controller.run_step(self.target_speed, waypoint)
         if not self.has_stopped: 
-            if current_speed < 0.05:
+            if current_speed < 0.5:
                 self.has_stopped = True
             else:
                 control.throttle = 0.0
                 control.brake = 1.0
                 print ("brake")
         else: 
-            if dtc < 0.2:
+            if dtc < 0.5:
                 self.has_stopped = False
                 isBack2Center = True
         

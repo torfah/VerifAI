@@ -533,6 +533,7 @@ class LaneInvasionSensor(object):
         if self._hud:
             self._hud.notification('Crossed line %s' % ' and '.join(text))
         self._history.append((self._hud.timestep, 1))
+        print (f"INVASION! at {self._hud.timestep}")
 
 
 # ==============================================================================
