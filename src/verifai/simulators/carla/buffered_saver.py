@@ -54,8 +54,5 @@ class BufferedImageSaver:
             self.reset()
             self.add_image(img_bytes)
         else:
-            raw_image = np.frombuffer(img_bytes, dtype=np.uint8)
-            raw_image = raw_image.reshape(
-                            self.buffer.shape[1], self.buffer.shape[2], -1)
-            self.buffer[self.index] = raw_image[:, :, :3]
+            self.buffer[self.index] = img_bytes 
             self.index += 1

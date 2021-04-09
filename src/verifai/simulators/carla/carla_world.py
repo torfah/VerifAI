@@ -201,7 +201,7 @@ class Vehicle(Entity):
         return True
 
     def get_control(self):
-        control = self.control_actor.run_step(self.world.iteration)
+        control = self.control_actor.run_step(self.world.iteration, self.world.camera_manager.frontcam_img)
         return control
 
 
@@ -547,7 +547,8 @@ class CameraManager(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
         self.frontcam = None
-        self.frontcam_recording = True 
+        self.frontcam_recording =False 
+        self.frontcam_img = None
         self._surface = None
         self._parent = parent_actor
         self._hud = hud
@@ -634,8 +635,14 @@ class CameraManager(object):
         self = weak_front_self()
         if not self:
             return
+        img_bytes = image.raw_data
+        raw_image = np.frombuffer(img_bytes, dtype=np.uint8)
+        raw_image = raw_image.reshape(self.IMG_H, self.IMG_W, -1)
+        raw_image = raw_image[:, :, :3] 
         if self.frontcam_recording:
-            self._saver.add_image(image.raw_data)
+            self._saver.add_image(raw_image)
+        else:
+            self.frontcam_img = raw_image
     @staticmethod
     def _parse_image(weak_self, image):
         self = weak_self()
