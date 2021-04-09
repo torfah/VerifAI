@@ -42,8 +42,8 @@ import numpy as np
 
 import carla
 from carla import ColorConverter as cc
-from examples.carla.overtake_control.config import N_SIM_STEP 
-
+from examples.carla.overtake_control.config import N_SIM_STEP, SIM_DIR 
+from src.verifai.simulators.carla.buffered_saver import BufferedImageSaver
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
@@ -176,6 +176,7 @@ class Vehicle(Entity):
             self.world.camera_manager._transform_index = cam_pos_index
             self.world.camera_manager.set_sensor(cam_index, notify=False)
             self.world.camera_manager.set_transform(self.world.cam_transform)
+            self.world.camera_manager.set_frontcam()
             actor_type = get_actor_display_name(self.actor)
             self.world.hud.notification(actor_type)
 
@@ -293,6 +294,8 @@ class World(object):
 
         if self.camera_manager is not None:
             self.camera_manager.sensor.destroy()
+            if self.camera_manager.frontcam:
+                self.camera_manager.frontcam.destroy()
             self.camera_manager.images = []
 
 
@@ -543,6 +546,8 @@ class LaneInvasionSensor(object):
 class CameraManager(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
+        self.frontcam = None
+        self.frontcam_recording = True 
         self._surface = None
         self._parent = parent_actor
         self._hud = hud
@@ -570,6 +575,10 @@ class CameraManager(object):
                 bp.set_attribute('image_size_y', str(hud.dim[1]))
             item.append(bp)
         self._index = None
+        self.IMG_H = 480
+        self.IMG_W = 480
+        if self.frontcam_recording:
+            self._saver = BufferedImageSaver(f'{SIM_DIR}/_out/',1000, self.IMG_H, self.IMG_W, 3 ,'CameraRGB')
 
     def toggle_camera(self):
         set_transform((self._transform_index + 1) % len(self._camera_transforms))
@@ -608,7 +617,25 @@ class CameraManager(object):
     def render(self, display):
         if self._surface is not None:
             display.blit(self._surface, (0, 0))
-
+    def set_frontcam(self):
+        frontcam_transform = carla.Transform(carla.Location(x=2.5, z=1.0))
+        index = 0
+        blueprint = self._sensors[index][-1]
+        blueprint.set_attribute('image_size_x', f'{self.IMG_W}')
+        blueprint.set_attribute('image_size_y', f'{self.IMG_H}')
+        blueprint.set_attribute('fov', '110')
+        self.frontcam = self._parent.get_world().spawn_actor(blueprint,
+                                                           frontcam_transform,
+                                                           attach_to=self._parent)
+        weak_self = weakref.ref(self)
+        self.frontcam.listen(lambda image: CameraManager._parse_frontcam(weak_self, image))
+    @staticmethod
+    def _parse_frontcam(weak_front_self, image):
+        self = weak_front_self()
+        if not self:
+            return
+        if self.frontcam_recording:
+            self._saver.add_image(image.raw_data)
     @staticmethod
     def _parse_image(weak_self, image):
         self = weak_self()
@@ -634,6 +661,3 @@ class CameraManager(object):
             array = array[:, :, :3]
             array = array[:, :, ::-1]
             self._surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
-        if self._recording:
-            image.save_to_disk('_out/%08d' % image.frame)
-        self.images.append(image)

@@ -40,7 +40,7 @@ class carla_task():
         try:
             pygame.init()
             pygame.font.init()
-            self.hud = HUD(*self.display_dim, True)
+            self.hud = HUD(*self.display_dim)
             self.display = pygame.display.set_mode(
                 self.display_dim,
                 pygame.HWSURFACE | pygame.DOUBLEBUF
@@ -63,6 +63,8 @@ class carla_task():
                 self.timestep += 1
             traj = self.trajectory_definition()
         finally:
+            if self.world.camera_manager.frontcam_recording:
+                self.world.camera_manager._saver.save()
             self.world.destroy()
             pygame.quit()
         return traj

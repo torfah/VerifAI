@@ -32,6 +32,7 @@ class SimplexAgent(Agent):
         self.min_dist = 0.9 * self.radius 
         self.isBack2Center =True 
         self.timestamp = 0
+        self.buffer=[]
     def add_next_waypoints(self):
         def d_angle(a, b):
             return abs((a - b + 180) % 360 - 180)
@@ -53,10 +54,15 @@ class SimplexAgent(Agent):
             self.waypoints.append(next_w)
 
     def _write_features(self, iteration):
-        with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
-            for key in self.features:
-                f.write(f'{key} {self.features[key]} ')
-            f.write('\n')
+        s = str()
+        for key in self.features:
+            s+=f'{key} {self.features[key]} '
+        s+='\n'
+        self.buffer.append([s])
+        if len(self.buffer) >= N_SIM_STEP:
+            with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
+                for s in self.buffer:
+                    f.write(f'{s[0]}')
     def run_step(self, iteration):
         transform = self._vehicle.get_transform()
 
@@ -82,9 +88,9 @@ class SimplexAgent(Agent):
             self.waypoints = self.waypoints[1:]
 
         # Draw next waypoint
-        draw_waypoints(self._vehicle.get_world(),
-                           self.waypoints[:1],
-                           self._vehicle.get_location().z + 1.0)
+        #draw_waypoints(self._vehicle.get_world(),
+        #                   self.waypoints[:1],
+        #                   self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc(iteration)
         do_AC = simplex_monitor.check(self.features, 15, False) 
