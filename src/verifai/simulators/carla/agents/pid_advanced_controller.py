@@ -37,7 +37,13 @@ class PIDadvancedController():
                                               args_lateral=self.lateral_pid_dict,
                                               args_longitudinal=self.longitudinal_pid_dict)
 
-    def run_step(self, waypoint):
-
-        return self.controller.run_step(self.target_speed, waypoint)
+    def run_step(self, waypoint, yaw_diff0, yaw_diff8):
+        coef =1.0
+        if yaw_diff0 > 60:
+            coef = 0.5
+        elif yaw_diff8 > 60:
+            coef = 0.8
+        speed = self.target_speed * coef
+        #print (f"yaw_diff0 {yaw_diff0} yaw_diff8 {yaw_diff8} coef {coef}")
+        return self.controller.run_step(speed, waypoint)
 

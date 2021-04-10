@@ -88,14 +88,18 @@ class SimplexAgent(Agent):
             self.waypoints = self.waypoints[1:]
 
         # Draw next waypoint
-        #draw_waypoints(self._vehicle.get_world(),
-        #                   self.waypoints[:1],
-        #                   self._vehicle.get_location().z + 1.0)
+        draw_waypoints(self._vehicle.get_world(),
+                           self.waypoints[:1],
+                           self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc(iteration)
         do_AC = simplex_monitor.check(self.features, 15, False) 
         if do_AC and self.isBack2Center:
-            control = self.advanced_controller.run_step(self.waypoints[0])
+            v_yaw = self._vehicle.get_transform().rotation.yaw
+            yaw_diff8 = int( abs(self.waypoints[8].transform.rotation.yaw - v_yaw) )
+            yaw_diff0 = int( abs(self.waypoints[0].transform.rotation.yaw - v_yaw) )
+            
+            control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0%180, yaw_diff8%180)
         else:
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
             print ("do_SC", dtc)
