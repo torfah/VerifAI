@@ -63,7 +63,7 @@ class SimplexAgent(Agent):
             with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
                 for s in self.buffer:
                     f.write(f'{s[0]}')
-    def run_step(self, iteration, frontcam_img):
+    def run_step(self, iteration):
         transform = self._vehicle.get_transform()
 
         if self.waypoints:
