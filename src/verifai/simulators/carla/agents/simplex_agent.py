@@ -93,7 +93,7 @@ class SimplexAgent(Agent):
                            self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc()
-        do_AC = simplex_monitor.check(self.features, 15, False) 
+        do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False) 
         if do_AC and self.isBack2Center:
             v_yaw = self._vehicle.get_transform().rotation.yaw
             yaw_diff8 = int( abs(self.waypoints[8].transform.rotation.yaw - v_yaw) )

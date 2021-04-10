@@ -239,14 +239,13 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
             remove_files()
         simulation_files = os.listdir(f"{data_dir}")
         training_data_list = []
-        for f in simulation_files:
-            if f.endswith("_run"):
-                sub_files = os.listdir(f"{data_dir}/{f}")
-                for sf in sub_files:
-                    if sf.endswith(".csv"):
-                        print(f"Creating training data from {f}/{sf} ...")
-                        file_path = f"{data_dir}/{f}/{sf}"
-                        training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
+        f = str( get_max_run_iter() ) + "_run"
+        sub_files = os.listdir(f"{data_dir}/{f}")
+        for sf in sub_files:
+            if sf.endswith(".csv"):
+                print(f"Creating training data from {f}/{sf} ...")
+                file_path = f"{data_dir}/{f}/{sf}"
+                training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
         
         os.system(f"rm -r {data_dir}/training_data")
         os.system(f"mkdir {data_dir}/training_data")
@@ -273,8 +272,7 @@ data_dir = SIM_DIR
 def condition(df):
     return (df['safe'] == False).any()
 
-generate(data_dir,columns,training_columns, condition,10,5,5)
-#generate_from_scratch(data_dir,columns,training_columns, condition,10,5,5)
+generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,5)
 
 
 
