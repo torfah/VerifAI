@@ -339,9 +339,9 @@ class HUD(object):
         heading += 'E' if 179.5 > t.rotation.yaw > 0.5 else ''
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
         colhist = world.ego.collision_sensor.get_collision_history()
-        collision = [colhist[x + self.frame - 200] for x in range(0, 200)]
-        max_col = max(1.0, max(collision))
-        collision = [x / max_col for x in collision]
+        collision = len(colhist)
+        invhist = world.ego.lane_sensor._history
+        invasion = len(invhist)
         vehicles = world.world.get_actors().filter('vehicle.*')
         self._info_text = [
             'Server:  % 16d FPS' % self.server_fps,
@@ -362,11 +362,10 @@ class HUD(object):
             ('Hand brake:', c.hand_brake),
             ('Manual:', c.manual_gear_shift),
             'Gear:        %s' % {-1: 'R', 0: 'N'}.get(c.gear, c.gear),
-            '',
-            'Collision:',
-            collision,
-            '',
-            'Number of vehicles: % 8d' % len(vehicles)
+            'Collisions: %8d' % collision,
+            'Invasions: %8d' % invasion,
+            'Number of vehicles: % 8d' % len(vehicles),
+            'TimeStep: % 8d' % self.timestep
         ]
         if len(vehicles) > 1:
             self._info_text += ['Nearby vehicles:']
