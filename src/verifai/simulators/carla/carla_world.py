@@ -197,7 +197,10 @@ class Vehicle(Entity):
         return True
 
     def get_control(self):
-        control = self.control_actor.run_step(self.world.iteration)
+        if self.ego:
+            control = self.control_actor.run_step(self.world.iteration)
+        else:
+            control = self.control_actor.run_step()
         return control
 
 

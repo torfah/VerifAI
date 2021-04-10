@@ -92,7 +92,7 @@ class SimplexAgent(Agent):
                            self.waypoints[:1],
                            self._vehicle.get_location().z + 1.0)
 
-        dtc = self.get_features_and_return_dtc(iteration)
+        dtc = self.get_features_and_return_dtc()
         do_AC = simplex_monitor.check(self.features, 15, False) 
         if do_AC and self.isBack2Center:
             v_yaw = self._vehicle.get_transform().rotation.yaw
@@ -107,7 +107,7 @@ class SimplexAgent(Agent):
         self.timestamp += 1
         return control 
 
-    def get_features_and_return_dtc(self, iteration):
+    def get_features_and_return_dtc(self):
         get_scalar = lambda vec: 3.6 * math.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
 
         v_yaw = self._vehicle.get_transform().rotation.yaw

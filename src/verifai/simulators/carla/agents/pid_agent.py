@@ -73,7 +73,7 @@ class PIDAgent(Agent):
             self.waypoints.append(next_w)
 
 
-    def run_step(self, iteration):
+    def run_step(self):
         transform = self._vehicle.get_transform()
 
         if self.waypoints:
