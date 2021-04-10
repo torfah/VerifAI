@@ -40,7 +40,7 @@ class carla_task():
         try:
             pygame.init()
             pygame.font.init()
-            self.hud = HUD(*self.display_dim)
+            self.hud = HUD(*self.display_dim, True)
             self.display = pygame.display.set_mode(
                 self.display_dim,
                 pygame.HWSURFACE | pygame.DOUBLEBUF
@@ -57,7 +57,6 @@ class carla_task():
             self.world.restart()
             self.timestep = 0
             while self.timestep < self.n_sim_steps:
-                print ("time", self.timestep)
                 self.world.timestep = self.timestep
                 self.step_world()
                 self.timestep += 1

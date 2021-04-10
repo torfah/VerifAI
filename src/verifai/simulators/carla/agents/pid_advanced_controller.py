@@ -1,7 +1,7 @@
 import carla
 from agents.navigation.agent import *
 from agents.navigation.controller import VehiclePIDController
-
+import random
 import numpy as np
 
 class PIDadvancedController():
@@ -39,11 +39,11 @@ class PIDadvancedController():
 
     def run_step(self, waypoint, yaw_diff0, yaw_diff8):
         coef =1.0
-        if yaw_diff0 > 60:
-            coef = 0.5
-        elif yaw_diff8 > 60:
-            coef = 0.8
+        thresh = random.uniform(60, 135)
+        if yaw_diff0 > thresh: 
+            coef = random.uniform(0.5,0.7)
+        elif yaw_diff8 > thresh: 
+            coef = random.uniform(0.7,0.9)
         speed = self.target_speed * coef
-        #print (f"yaw_diff0 {yaw_diff0} yaw_diff8 {yaw_diff8} coef {coef}")
         return self.controller.run_step(speed, waypoint)
 
