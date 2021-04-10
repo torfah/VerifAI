@@ -35,11 +35,6 @@ class PIDsafeController():
                                               args_longitudinal=self.longitudinal_pid_dict)
         self.has_stopped = False
         self._vehicle = vehicle
-    def _calc_dtc(self, vehicle, waypoint):
-        v_yaw = vehicle.get_transform().rotation.yaw
-        w_yaw = waypoint.transform.rotation.yaw
-        dtc = math.tan(math.radians( abs(v_yaw - w_yaw) )) * distance_vehicle(waypoint, vehicle.get_transform())
-        return dtc
     def run_step(self, waypoint, dtc):
 
         current_speed = get_speed(self._vehicle) 

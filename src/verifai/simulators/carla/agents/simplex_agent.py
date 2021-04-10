@@ -128,7 +128,4 @@ class SimplexAgent(Agent):
             self.features[f'waypoint_{i}_dist'] = distance
             self.features[f'waypoint_{i}_dtc'] = dtc
         
-        #projected_w = self._vehicle.get_world().get_map().get_waypoint(self._vehicle.get_transform().location, project_to_road=True) 
-        #dtc = distance_vehicle(projected_w, self._vehicle.get_transform())
-        #self.opt_dict['dtc_history'].append((self.timestamp +N_SIM_STEP*iteration, dtc))
         return dtc

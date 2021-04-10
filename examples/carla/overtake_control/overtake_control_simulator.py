@@ -58,7 +58,6 @@ class overtake_control_task(carla_task):
                                                   spawn=ego_spawn,
                                                   has_collision_sensor=True,
                                                   has_lane_sensor=True,
-                                                  has_dtc_sensor = True,
                                                   ego=True)
 
     def trajectory_definition(self):
@@ -75,7 +74,6 @@ class overtake_control_task(carla_task):
         print ('egocollision', ego_collision)
         traj = {
             'egocollision': ego_collision,
-            #'dtc': self.ego_vehicle.control_params['dtc_history'] 
             'laneinvade': lane_invasion 
         }
         return traj
