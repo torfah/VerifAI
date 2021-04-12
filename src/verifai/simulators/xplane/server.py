@@ -4,6 +4,7 @@ import time
 import sys
 import math
 import socket
+import os
 
 import numpy as np
 import pandas as pd
@@ -16,9 +17,9 @@ except ImportError as e:
     raise RuntimeError('the X-Plane interface requires XPlaneConnect') from e
 
 import verifai, verifai.server, verifai.falsifier, verifai.samplers
-import verifai.simulators.xplane.utils.controller as simple_controller
+import utils.simple_model as simple_controller
 from verifai.simulators.xplane.utils.geometry import (euclidean_dist, quaternion_for,
-    initial_bearing, cross_track_distance, compute_heading_error)
+    initial_bearing, cross_track_distance, compute_heading_error, great_circle_distance_haversine)
 
 position_dref = ["sim/flightmodel/position/local_x",
                  "sim/flightmodel/position/local_y",
@@ -43,6 +44,8 @@ velocity_drefs = [      # velocity and acceleration drefs to null between runs
 fuel_dref = "sim/flightmodel/weight/m_fuel"
 
 class XPlaneServer(verifai.server.Server):
+    simulation_count = 0
+
     def __init__(self, sampling_data, monitor, options):
         super().__init__(sampling_data, monitor, options)
 
@@ -145,6 +148,12 @@ class XPlaneServer(verifai.server.Server):
         time.sleep(0.1)
         self.xpcserver.sendDREF("sim/flightmodel/controls/parkbrake", 0)
 
+        if self.simulation_count == 0:
+            os.system("rm -r simulation_data")
+        os.system("mkdir simulation_data")
+        log = open(f"simulation_data/log_{self.simulation_count}.csv", "w")
+        log.write("time, init_pos, init_heading, day_time, lat, lon, cte, he, clouds, rain, pos\n")
+
         # Execute a run
         if self.verbosity >= 1:
             print('Starting run...')
@@ -161,6 +170,8 @@ class XPlaneServer(verifai.server.Server):
             cte = cross_track_distance(start_lat, start_lon, end_lat, end_lon, lat, lon)
             heading_err = compute_heading_error(self.desired_heading, psi)
             ctes.append(cte); hes.append(heading_err)
+
+            travel_distance = great_circle_distance_haversine(start_lat, start_lon, lat, lon)
             # Run controller for one step, if desired
             if self.controller is not None:
                 self.controller(self.xpcserver, lat, lon, psi, cte, heading_err)
@@ -176,7 +187,16 @@ class XPlaneServer(verifai.server.Server):
                 time.sleep(wait_time)
 
             current = time.time()
+
+            log.write(f"{current}, {plane_x_sc}, {start_heading},\
+                {params['sim/time/zulu_time_sec']}, {lat}, {lon}, {cte}, {heading_err},\
+                {params['sim/weather/cloud_type[0]']}, {params['sim/weather/rain_percent']},\
+                {math.floor(travel_distance)}\n")
+
         self.images = images
+
+        log.close()
+        self.simulation_count += 1
 
         # Do some simple checks to see if the plane has gotten stuck
         thresh = 0.000001
