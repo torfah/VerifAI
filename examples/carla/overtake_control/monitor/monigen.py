@@ -265,14 +265,15 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
 
 
 # DEBUGGING 
-columns = ['v', 'acc', 'ang_v', 'waypoint_2_dyaw', 'waypoint_2_dist', 'waypoint_2_dtc','waypoint_1_dyaw', 'waypoint_1_dist', 'waypoint_1_dtc', 'waypoint_0_dyaw', 'waypoint_0_dist', 'waypoint_0_dtc', 'safe']
-training_columns = ['v', 'acc', 'ang_v', 'waypoint_2_dyaw', 'waypoint_2_dist', 'waypoint_2_dtc','waypoint_1_dyaw', 'waypoint_1_dist', 'waypoint_1_dtc', 'waypoint_0_dyaw', 'waypoint_0_dist', 'waypoint_0_dtc'] 
+columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc', 'safe'] 
+training_columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc']  
 data_dir = SIM_DIR 
 
 def condition(df):
     return (df['safe'] == False).any()
 
-generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,5)
+generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
+#generate(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
 
 
 

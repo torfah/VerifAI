@@ -16,7 +16,7 @@ class SimplexAgent(Agent):
 
     def __init__(self, vehicle, opt_dict=None):
         super(SimplexAgent, self).__init__(vehicle)
-        safe_speed = 5.0
+        safe_speed = 10.0
         if opt_dict:
             if 'target_speed' in opt_dict:
                 self.target_speed = opt_dict['target_speed']
@@ -113,10 +113,10 @@ class SimplexAgent(Agent):
         v_yaw = self._vehicle.get_transform().rotation.yaw
         if v_yaw < 0: v_yaw += 360
         self.features['v'] = get_scalar(self._vehicle.get_velocity())
-        self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
-        self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
+        #self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
+        #self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
         dtc = 0
-        for i in range(2, -1, -1):
+        for i in range(5, -1, -1):
             waypoint = self.waypoints[i]
             w_yaw = waypoint.transform.rotation.yaw 
             if w_yaw < 0: w_yaw += 360
@@ -124,8 +124,8 @@ class SimplexAgent(Agent):
             diff_yaw = abs(math.tan(math.radians( abs(v_yaw - w_yaw) )))
             distance = distance_vehicle(waypoint, self._vehicle.get_transform())
             dtc = diff_yaw * distance 
-            self.features[f'waypoint_{i}_dyaw'] = diff_yaw
-            self.features[f'waypoint_{i}_dist'] = distance
+            #self.features[f'waypoint_{i}_dyaw'] = diff_yaw
+            #self.features[f'waypoint_{i}_dist'] = distance
             self.features[f'waypoint_{i}_dtc'] = dtc
         
         return dtc

@@ -16,7 +16,7 @@ SAMPLERTYPE = 'ce'
 MAX_ITERS = 3
 MAXREQS = 5
 
-specification = ['~(egocollision | laneinvade)']
+specification = ['~(laneinvade)']
 
 falsifier_params = DotMap()
 falsifier_params.n_iters = MAX_ITERS

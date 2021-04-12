@@ -23,6 +23,7 @@ class PIDsafeController():
             'dt': 0.05
         }
         self.target_speed = target_speed 
+        self.old_target_speed = target_speed
         self.lateral_pid_dict['dt'] = 1.0 / self.target_speed
         self.longitudinal_pid_dict['dt'] = 1.0 / self.target_speed
         if opt_dict:
@@ -44,14 +45,15 @@ class PIDsafeController():
         if not self.has_stopped: 
             if current_speed < 0.5:
                 self.has_stopped = True
+                self.target_speed = 20.0
             else:
                 control.throttle = 0.0
-                control.brake = 1.0
+                control.brake = 0.5
                 print ("brake")
         else: 
             if dtc < 0.5:
                 self.has_stopped = False
                 isBack2Center = True
-        
+                self.target_speed = self.old_target_speed 
         return control, isBack2Center
 
