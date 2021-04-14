@@ -30,8 +30,7 @@ def tree_to_code(tree, feature_names, file_name, out_dir="."):
     recurse(0, 1)
     code_file.close()
 
-def learn_dt(csv_file_path, label, features_names, file_name, visualization=False,out_dir="."):
-
+def learn_dt(csv_file_path, label, features_names, append_mode=True, visualization=False,out_dir="."):
     data = pd.read_csv(csv_file_path)   
 
     X = data[features_names]
@@ -41,8 +40,24 @@ def learn_dt(csv_file_path, label, features_names, file_name, visualization=Fals
     dt = dt.fit(X,Y)
 
     # Export tree
-    os.system(f"rm -r {out_dir}/dt")
-    os.system(f"mkdir {out_dir}/dt")
+    new_tree_fname = "dt"
+    if append_mode:
+        os.system(f"mkdir -p {out_dir}/dt")
+
+        # Get the correct filename
+        max_iter = -1
+
+        prev_tree_files = os.listdir(f"{out_dir}/dt")
+        for f in prev_tree_files: # tree_0.py
+            iteration = f.split(".")[0].split("_")[1]
+            max_iter = max(max_iter, int(iteration))
+        new_tree_fname = f'tree_{max_iter + 1}'
+
+    else: # replace old trees
+        os.system(f"rm -r {out_dir}/dt")
+        os.system(f"mkdir {out_dir}/dt")
+
+
     ## Visualization 
     if visualization == True:
         dot_data = tree.export_graphviz(dt, out_file=None, feature_names=features_names, class_names=["0","1"], filled=True)
@@ -51,7 +66,7 @@ def learn_dt(csv_file_path, label, features_names, file_name, visualization=Fals
         os.system(f"dot -Tpng {out_dir}/dt/{file_name} -o {out_dir}/dt/{file_name}.png")
    
     ## Executable Code
-    tree_to_code(dt,features_names, file_name, f"{out_dir}/dt")
+    tree_to_code(dt,features_names, new_tree_fname, f"{out_dir}/dt")
 
     return dt
 

@@ -259,7 +259,9 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
                         training_data_list[i].to_csv(f"{data_dir}/training_data/training_data_{i}.csv",index=False,header=False)
         os.system(f"cat {data_dir}/training_data/*csv > {data_dir}/training_data/training_data.csv")
 
-        learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, "dt",False, data_dir)
+        print("Generating DT: -> ")
+
+        learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, True ,False, data_dir)
 
         create_monitor_wrapper(data_dir)
 
