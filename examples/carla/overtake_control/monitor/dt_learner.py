@@ -50,9 +50,10 @@ def learn_dt(csv_file_path, label, features_names, append_mode=True, visualizati
         max_iter = -1
 
         prev_tree_files = os.listdir(f"{out_dir}/dt")
-        for f in prev_tree_files: # tree_0.py
-            iteration = f.split(".")[0].split("_")[1]
-            max_iter = max(max_iter, int(iteration))
+        for f in prev_tree_files: # tree_0.joblib
+            if f.endswith("joblib"):
+                iteration = f.split(".")[0].split("_")[1]
+                max_iter = max(max_iter, int(iteration))
         new_tree_fname = f'tree_{max_iter + 1}'
 
     else: # replace old trees
