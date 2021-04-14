@@ -2,8 +2,10 @@ from sklearn import tree
 from sklearn.tree import _tree
 import pandas as pd 
 import numpy as np
+from joblib import dump, load
 #import graphviz
 import os
+
 
 def tree_to_code(tree, feature_names, file_name, out_dir="."):
 
@@ -66,7 +68,8 @@ def learn_dt(csv_file_path, label, features_names, append_mode=True, visualizati
         os.system(f"dot -Tpng {out_dir}/dt/{file_name} -o {out_dir}/dt/{file_name}.png")
    
     ## Executable Code
-    tree_to_code(dt,features_names, new_tree_fname, f"{out_dir}/dt")
+    # tree_to_code(dt,features_names, new_tree_fname, f"{out_dir}/dt")
+    dump(dt, f"{out_dir}/dt/{new_tree_fname}.joblib")
 
     return dt
 
