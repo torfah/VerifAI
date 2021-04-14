@@ -70,6 +70,7 @@ def learn_dt(csv_file_path, label, features_names, append_mode=True, visualizati
    
     ## Executable Code
     # tree_to_code(dt,features_names, new_tree_fname, f"{out_dir}/dt")
+    print(f"{out_dir}/dt/{new_tree_fname}.joblib")
     dump(dt, f"{out_dir}/dt/{new_tree_fname}.joblib")
 
     return dt
