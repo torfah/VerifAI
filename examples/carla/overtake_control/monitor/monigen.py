@@ -107,59 +107,82 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
         return training_data
 
 
-def create_monitor_wrapper(dt_import_path):
-        print(dt_import_path)
-        code_file = open(f"{dt_import_path}/monitor.py", "w")
+def create_monitor_wrapper(dt_import_path, feature_names):
+    print(dt_import_path)
+    code_file = open(f"{dt_import_path}/monitor.py", "w")
 
-        indent = "      "
-        # imports
-        code_file.write("import importlib\n")
-        code_file.write(f"from examples.carla.overtake_control.simpath.dt import dt\n\n")
-        
-        # global variables 
-        code_file.write("window_data = [] \n")
-        # code_file.write("dt_map = {}\n\n")
-        
+    indent = "    "
+    # imports
+    #code_file.write("import importlib\n")
+    code_file.write("import os\n")
+    code_file.write("import numpy as np\n")
+    code_file.write("from joblib import load\n")
+    # code_file.write(f"from examples.carla.overtake_control.simpath.dt import dt\n\n")
 
-        # function def
-        code_file.write("def check(input_map, input_window, reload_dt):\n\n")
+    # global variables
+    code_file.write("window_data = [] \n")
+    # code_file.write("dt_map = {}\n\n")
 
-        # global variables definitions
-        code_file.write(indent+"dt_map = {}\n")
-        code_file.write(indent+"global window_data\n\n")
+    # function def
+    code_file.write("def check(input_map, input_window, reload_dt):\n\n")
 
-        # filled buffer
-        code_file.write(indent+"# check if data has reached window size\n")
-        code_file.write(indent+"window_fill_size = len(window_data)\n")
-        code_file.write(indent+"if window_fill_size < input_window:\n")
-        code_file.write(indent+indent+"# expand window_data with input_map\n")
-        code_file.write(indent+indent+"window_data.append(input_map)\n")
-        code_file.write(indent+indent+"return True\n\n")
+    # global variables definitions
+    code_file.write(indent + "dt_map = {}\n")
+    code_file.write(indent + "global window_data\n\n")
 
-        # Implement FIFO
-        code_file.write(indent+"# FIFO behavior: Buffer of size input_window\n")
-        code_file.write(indent+"window_data.pop(0)\n")
-        code_file.write(indent+"window_data.append(input_map)\n\n")
+    # filled buffer
+    code_file.write(indent + "# check if data has reached window size\n")
+    code_file.write(indent + "window_fill_size = len(window_data)\n")
+    code_file.write(indent + "if window_fill_size < input_window:\n")
+    code_file.write(indent + indent + "# expand window_data with input_map\n")
+    code_file.write(indent + indent + "window_data.append(input_map)\n")
+    code_file.write(indent + indent + "return True\n\n")
 
-        # dt map initialization
-        code_file.write(indent+"# initialize map if not initialized\n")
-        code_file.write(indent+"if not dt_map:\n")
-        code_file.write(indent+indent+"for i in range(window_fill_size):\n")
-        code_file.write(indent+indent+indent+"for key in window_data[i].keys():\n")
-        code_file.write(indent+indent+indent+indent+"name = f\"{key}@{i}\"\n")
-        code_file.write(indent+indent+indent+indent+"dt_map[name] = window_data[i][key]\n\n")
-        code_file.write(indent+"#print(dt_map)\n\n")
+    # Implement FIFO
+    code_file.write(indent + "# FIFO behavior: Buffer of size input_window\n")
+    code_file.write(indent + "window_data.pop(0)\n")
+    code_file.write(indent + "window_data.append(input_map)\n\n")
 
-        # reload dt
-        code_file.write(indent+"# import decision tree\n")
-        code_file.write(indent+"if reload_dt:\n")
-        code_file.write(indent+indent+"importlib.reload(dt)\n\n")
+    # dt map initialization
+    code_file.write(indent + "# initialize map if not initialized\n")
+    code_file.write(indent + "if not dt_map:\n")
+    code_file.write(indent + indent + "for i in range(window_fill_size):\n")
+    code_file.write(indent + indent + indent + "for key in window_data[i].keys():\n")
+    code_file.write(indent + indent + indent + indent + "name = f\"{key}@{i}\"\n")
+    code_file.write(indent + indent + indent + indent + "dt_map[name] = window_data[i][key]\n\n")
+    code_file.write(indent + "#print(dt_map)\n\n")
 
-        # compute and return verdict
-        code_file.write(indent+"verdict = dt.execute(dt_map)\n")
-        code_file.write(indent+"return verdict")
-        
-        code_file.close()
+    code_file.write(indent + "# need to convert to X format\n")
+    code_file.write(indent + "X = []\n")
+    code_file.write(indent + "features = " + str(feature_names) + "\n")
+    code_file.write(indent + "for feature in features:\n")
+    code_file.write(indent + indent + "X.append(dt_map[feature])\n")
+    code_file.write(indent + "X = np.array(X)\n")
+    code_file.write(indent + "X = np.expand_dims(X, axis=0)\n")
+
+    code_file.write(indent + "dts = []\n")
+    code_file.write(indent + 'prev_tree_files = os.listdir(f"./examples/carla/overtake_control/simpath/dt")\n')
+    code_file.write(indent + "for fname in prev_tree_files:  # tree_0.joblib\n")
+    code_file.write(indent + indent + 'if fname.endswith("joblib"):\n')
+    code_file.write(indent + indent + indent + 'dts.append(load(f"./examples/carla/overtake_control/simpath/dt/{fname}"))\n')
+
+    code_file.write(indent + "for dt in dts:\n")
+    code_file.write(indent + indent + "verdict = dt.predict(X)[0]\n")
+    code_file.write(indent + indent + "if verdict == 0: return 0\n")
+    code_file.write(indent + "return 1\n")
+
+    #
+    # # reload dt
+    # code_file.write(indent + "# import decision tree\n")
+    # code_file.write(indent + "if reload_dt:\n")
+    # code_file.write(indent + indent + "importlib.reload(dt)\n\n")
+
+    # compute and return verdict
+    # code_file.write(indent + "verdict = dt.execute(dt_map)\n")
+    # code_file.write(indent + "return verdict")
+
+    code_file.close()
+
 
 def process_log_files():
     simulation_files = os.listdir(f"{data_dir}")
@@ -263,7 +286,7 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
 
         learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, True ,False, data_dir)
 
-        create_monitor_wrapper(data_dir)
+        create_monitor_wrapper(data_dir, feature_names)
 
 
 # DEBUGGING 
@@ -274,8 +297,6 @@ data_dir = SIM_DIR
 def condition(df):
     return (df['safe'] == False).any()
 
+# Generate DT from latest run
 generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
 #generate(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
-
-
-

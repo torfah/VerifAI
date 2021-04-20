@@ -37,8 +37,8 @@ def learn_dt(csv_file_path, label, features_names, append_mode=True, visualizati
 
     X = data[features_names]
     Y = data[label]
-
-    dt = tree.DecisionTreeClassifier(class_weight='balanced')
+    # Limit depth of tree to force generality, fast evaluation
+    dt = tree.DecisionTreeClassifier(class_weight='balanced', max_depth=10)
     dt = dt.fit(X,Y)
 
     # Export tree

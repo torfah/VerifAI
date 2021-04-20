@@ -13,7 +13,7 @@ init_conditions = Struct({
 sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
-MAX_ITERS = 3
+MAX_ITERS = 1
 MAXREQS = 5
 
 specification = ['~(laneinvade)']
