@@ -7,9 +7,14 @@ from monitor.dt_learner import *
 import csv
 from config import *
 def log_to_csv(log_fname):
+    """
+    Convert a single .log file (feature vector on each line, space-delimited) to .csv (comma-delimited).
+    Requires error table CSV having been generated.
+    """
     csv_fname = log_fname.replace('.log', '.csv')
     table_fname = log_fname.replace('.log', '_error_table.csv')
     os.system(f"rm {csv_fname}")
+    # Get field names from logfile as every other string is a field name
     with open(log_fname, 'r') as lf:
         first_line = lf.readline()
         first_line = first_line.strip().split()
@@ -17,7 +22,9 @@ def log_to_csv(log_fname):
         for i in range(len(first_line)):
             if i % 2 == 0:
                 fieldnames.append(first_line[i])
+    # Add a column for labeling
     fieldnames.append('safe')
+    # Create CSV with log information and extra column from error table
     with open(log_fname, 'r') as lf, open(table_fname, 'r') as tf:
         with open(csv_fname, 'w') as cf:
             writer = csv.DictWriter(cf, fieldnames=fieldnames)
@@ -35,12 +42,18 @@ def log_to_csv(log_fname):
                 writer.writerow(line_dict)
     return csv_fname
 def write_error_table(f_index, output):
+    """
+    Generate error table from np array with 0's and 1's: assign each timestep True/False in a CSV for the run.
+    """
     with open(f'{SIM_DIR}/{f_index}_error_table.csv', 'a')  as f:
         for j in range(N_SIM_STEP):
             if output[j] == 0: tmp = False
             else: tmp = True
             f.write(f'{j},{tmp}\n')
 def read_target_speeds():
+    """
+    Read init.log and return a python list of lists containing [run index, speed]
+    """
     init_log = list()
     with open(f'{SIM_DIR}/init.log', 'r') as f:
         lines = f.readlines()
@@ -49,62 +62,80 @@ def read_target_speeds():
             init_log.append( [ int(line[0]), float(line[1]) ] )
     return init_log
 def process_error_tables():
+    """
+    Read in falsifier output and write out error table CSV containing a matrix of 1 or 0 (violation) for
+    each timestep, for each run listed in init.log.
+    """
     init_log = read_target_speeds()
     table_df = pd.read_csv(f'{SIM_DIR}/falsifier.csv')
     table_df = table_df[['point.init_conditions.ego_target_speed[0]', 'rho_0']]
     os.system(f"rm {SIM_DIR}/*_error_table.csv")
     for sample in init_log:
         output = np.ones((N_SIM_STEP, 1))
-        i = sample[0]
-        speed = sample[1]
+        i = sample[0] # index
+        speed = sample[1] # target speed
         for index, row in table_df.iterrows():
             if abs(float(row['point.init_conditions.ego_target_speed[0]'])-speed) > 1e-13: continue
             time = int(row['rho_0']) % N_SIM_STEP
             output[time] = 0
+        # Use index and error matrix to write out a CSV
         write_error_table(i, output)
 def create_training_data(csv_file_path, input_window, horizon, decision_window, columns, training_columns, condition):
-        data = pd.read_csv(csv_file_path)       
+    """
+    Return a dataframe containing tranining data based on the sliding window model
+    """
+    data = pd.read_csv(csv_file_path)
 
-        # Prepare training dataframe 
-        training_data_columns = []
-        for i in range(input_window):
-                for c in training_columns:
-                        training_data_columns.append(f"{c}@{i}")
-        training_data_columns.append("flag")
-        training_data = pd.DataFrame(columns=training_data_columns)
-        # Iterate over data: for each sliding window of size input_window look horzion many steps into the future and check condition over decision window.
-        # label sequence of data input window according to condition 
-        for i in range(len(data) - (decision_window + horizon + input_window -1)):
-                if i % 20 == 0: print (i) 
-                # collect data within an input_window
-                current_input_window_data = pd.DataFrame(columns= columns)
-                for j in range(i,i + input_window):
-                        current_input_window_data.loc[j] = data.loc[j,columns]
-                current_input_window_data.reset_index(drop=True)
-                # print(current_input_window_data)
+    # Prepare training dataframe
+    training_data_columns = []
+    for i in range(input_window):
+            for c in training_columns:
+                    training_data_columns.append(f"{c}@{i}")
+    training_data_columns.append("flag")
+    training_data = pd.DataFrame(columns=training_data_columns)
+    # Iterate over data: for each sliding window of size input_window look horzion many steps into the future and check condition over decision window.
+    # label sequence of data input window according to condition
+    t0 = time.time()
+    for i in range(len(data) - (decision_window + horizon + input_window -1)):
+            if i % 40 == 0: print (f"Creating training data, sliding window at timestep i")
+            t1 = time.time()
+            # collect data within an input_window
+            current_input_window_data = pd.DataFrame(columns= columns)
+            for j in range(i,i + input_window):
+                    current_input_window_data.loc[j] = data.loc[j,columns]
+            current_input_window_data.reset_index(drop=True)
+            # print(current_input_window_data)
 
-                # check condition for the collected data
-                current_decision_window_data = pd.DataFrame(columns=columns)
-                for j in range(i + input_window + horizon, i + input_window + horizon + decision_window):
-                        current_decision_window_data.loc[j] = data.loc[j,columns]
-                # print(current_decision_window_data)
-                current_label = not condition(current_decision_window_data)
+            # check condition for the collected data
+            t2 = time.time()
+            current_decision_window_data = pd.DataFrame(columns=columns)
+            for j in range(i + input_window + horizon, i + input_window + horizon + decision_window):
+                    current_decision_window_data.loc[j] = data.loc[j,columns]
+            # print(current_decision_window_data)
+            current_label = not condition(current_decision_window_data)
 
-                # create new training_data entry 
-                entry = []
-                for j in range(i,i+len(current_input_window_data)):
-                        for c in training_columns:
-                                entry.append(current_input_window_data.loc[j,[c]].values[0])
-                
-                entry.append(current_label)
-                
-                # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
-                panda_entry = pd.DataFrame([entry], columns=training_data_columns)
-                training_data = training_data.append(panda_entry,ignore_index=True)
-                
-                                 
-        # print(training_data)
-        return training_data
+            # create new training_data entry
+            t3 = time.time()
+            entry = []
+            for j in range(i,i+len(current_input_window_data)):
+                    for c in training_columns:
+                            entry.append(current_input_window_data.loc[j,[c]].values[0])
+
+            entry.append(current_label)
+
+            t4 = time.time()
+            # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
+            panda_entry = pd.DataFrame([entry], columns=training_data_columns)
+            training_data = training_data.append(panda_entry,ignore_index=True)
+            t5 = time.time()
+    print(f"Creating training data took {t5 - t0} seconds")
+    print(f"Concatenating last input window took {t2 - t1} seconds")
+    print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
+    print(f"Creating last training data entry list took {t4 - t3} seconds")
+    print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
+
+    # print(training_data)
+    return training_data
 
 
 def create_monitor_wrapper(dt_import_path, feature_names):
@@ -185,6 +216,9 @@ def create_monitor_wrapper(dt_import_path, feature_names):
 
 
 def process_log_files():
+    """
+    Convert all 0.log, 1.log, etc. files to CSV files.
+    """
     simulation_files = os.listdir(f"{data_dir}")
     for f in simulation_files:
         if f.endswith(".log") and not f.startswith('init'):
@@ -200,7 +234,7 @@ def move_csv_files():
     folder_name = f'{max_iter+1}_run'
     os.system(f'mkdir {data_dir}/{folder_name}')
     os.system(f'mv {data_dir}/*.csv {data_dir}/{folder_name}')
-    
+
 def remove_files():
     simulation_files = os.listdir(f"{data_dir}")
     for f in simulation_files:
@@ -209,6 +243,9 @@ def remove_files():
             os.system(f'rm {file_path}')
     move_csv_files()
 def get_max_run_iter():
+    """
+    Get the highest index of folders titled 0_run, 1_run, etc.
+    """
     simulation_files = os.listdir(f"{data_dir}")
     max_iter = -1
     for f in simulation_files:
@@ -228,13 +265,17 @@ def get_training_data_max_index():
 
 def generate(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2):
     # Iterate over all simulation files
-    if os.path.exists(f'{data_dir}/falsifier.csv'): 
+    if os.path.exists(f'{data_dir}/falsifier.csv'):
+        print(f"Generating error tables from falsifier.csv...")
         process_error_tables()
+        print(f"Generating labeled CSVs from log files...")
         process_log_files()
+        print(f"Cleaning up temporary files...")
         remove_files()
     training_data_list = []
     f = str( get_max_run_iter() ) + "_run"
     sub_files = os.listdir(f"{data_dir}/{f}")
+    # For each iteration in the most recent run, generate training data from the labeled CSV
     for sf in sub_files:
         if sf.endswith(".csv"):
             print(f"Creating training data from {f}/{sf} ...")
@@ -243,6 +284,7 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
     start_index = get_training_data_max_index() + 1
     feature_names = []
     class_names = ['flag']
+    # Write out training data dataframes as CSV
     for i in range(len(training_data_list)):
         training_data_list[i].to_csv(f"{data_dir}/training_data/training_data_{i+start_index}.csv",index=False,header=False)
         if i ==0:
@@ -256,9 +298,12 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
 
 def generate_from_scratch(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2):
         # Iterate over all simulation files
-        if os.path.exists(f'{data_dir}/falsifier.csv'): 
+        if os.path.exists(f'{data_dir}/falsifier.csv'):
+            print(f"Generating error tables from falsifier.csv...")
             process_error_tables()
+            print(f"Generating labeled CSVs from log files...")
             process_log_files()
+            print(f"Cleaning up temporary files...")
             remove_files()
         simulation_files = os.listdir(f"{data_dir}")
         training_data_list = []
@@ -269,7 +314,7 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
                 print(f"Creating training data from {f}/{sf} ...")
                 file_path = f"{data_dir}/{f}/{sf}"
                 training_data_list.append(create_training_data(file_path, input_window, horizon, decision_window, column_names, training_column_names, condition))
-        
+
         os.system(f"rm -r {data_dir}/training_data")
         os.system(f"mkdir {data_dir}/training_data")
         feature_names = []
@@ -289,10 +334,10 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
         create_monitor_wrapper(data_dir, feature_names)
 
 
-# DEBUGGING 
-columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc', 'safe'] 
-training_columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc']  
-data_dir = SIM_DIR 
+# DEBUGGING
+columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc', 'safe']
+training_columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc']
+data_dir = SIM_DIR
 
 def condition(df):
     return (df['safe'] == False).any()
