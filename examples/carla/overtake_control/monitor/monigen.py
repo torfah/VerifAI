@@ -107,9 +107,9 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
                 current_input_window_data.loc[j] = data.loc[j,columns]
         current_input_window_data.reset_index(drop=True)
         # Testing
-        # Must be a python list to handle True/False values
-        entry_new = data.loc[i:i+input_window, training_columns].to_numpy().flatten().tolist()
-        # print(current_input_window_data)
+        # Must be a python list to handle True/False values. df indexing is inclusive on both ends
+        entry_new = data.loc[i:i+input_window-1, training_columns].to_numpy().flatten().tolist()
+
 
         # check condition for the collected data
         t2 = time.time()
@@ -123,24 +123,35 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
                         entry.append(current_input_window_data.loc[j,[c]].values[0])
         # Create a row for the training data CSV as a python list, concatenate these at end?
         entry.append(current_label)
-        entry_new = np.append(entry_new, current_label)
-
+        entry_new.append(current_label)
         t4 = time.time()
         # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
         panda_entry = pd.DataFrame([entry], columns=training_data_columns)
         training_data = training_data.append(panda_entry,ignore_index=True)
+        training_data_list.append(entry_new)
+        #print(f"training data cols length: {len(training_data_columns)}")
+        #print(f"entry new length: {len(entry_new)}")
+        #print(f"panda entry shape: {panda_entry.shape}")
         t5 = time.time()
         #print(f"Concatenating last input window took {t2 - t1} seconds")
         #print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
         #print(f"Creating last training data entry list took {t4 - t3} seconds")
         #print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
-    
+    # Create dataframe from list of lists
+    training_data_new = pd.DataFrame(data=training_data_list, columns=training_data_columns)
+    t6 = time.time()
     print(f"Creating training data took {t5 - t0} seconds")
     print(f"Concatenating last input window took {t2 - t1} seconds")
     print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
     print(f"Creating last training data entry list took {t4 - t3} seconds")
     print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
-
+    print(f"Creating new dataframe from list took {t6 - t5} seconds")
+    print(f"Dataframes equal: {training_data.equals(training_data_new)}")
+    print(f"original shape: {training_data.shape}, new shape: {training_data_new.shape}")
+    print(f"original columns: {training_data.columns}, new columns: {training_data_new.columns}")
+    # Write both to CSV for testing
+    training_data.to_csv(f"{SIM_DIR}/training_data/training_data_test.csv",index=False,header=False)
+    training_data_new.to_csv(f"{SIM_DIR}/training_data/training_data_new_test.csv",index=False,header=False)
     # print(training_data)
     return training_data
 
@@ -349,12 +360,14 @@ data_dir = SIM_DIR
 def condition(df, start, end):
     """
     Arbitrary condition for safety evaluated on a given interval
+    Must be evaluated quickly for overall runtime to be low
     """
-    current_label = True
     for j in range(start, end):
-        if not df.loc[j, "safe"]:
-            current_label = False
-    return current_label
+        safe = df.loc[j, "safe"]
+        # print(f"Safe at index {j}?: {safe}")
+        if not safe:
+            return False
+    return True
 
 # Generate DT from latest run
 generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
