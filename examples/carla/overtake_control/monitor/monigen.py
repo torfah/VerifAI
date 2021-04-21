@@ -97,7 +97,8 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
     # label sequence of data input window according to condition
     t0 = time.time()
     for i in range(len(data) - (decision_window + horizon + input_window -1)):
-            if i % 40 == 0: print (f"Creating training data, sliding window at timestep i")
+            if i % 40 == 0: print (f"Creating training data, sliding window at timestep {i}")
+            if i % 120 == 0 and i != 0: print (f"Elapsed time: {time.time() - t0} seconds")
             t1 = time.time()
             # collect data within an input_window
             current_input_window_data = pd.DataFrame(columns= columns)
@@ -108,11 +109,7 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
 
             # check condition for the collected data
             t2 = time.time()
-            current_decision_window_data = pd.DataFrame(columns=columns)
-            for j in range(i + input_window + horizon, i + input_window + horizon + decision_window):
-                    current_decision_window_data.loc[j] = data.loc[j,columns]
-            # print(current_decision_window_data)
-            current_label = not condition(current_decision_window_data)
+            current_label = condition(data, i + input_window + horizon, i + input_window + horizon + decision_window)
 
             # create new training_data entry
             t3 = time.time()
@@ -128,6 +125,10 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
             panda_entry = pd.DataFrame([entry], columns=training_data_columns)
             training_data = training_data.append(panda_entry,ignore_index=True)
             t5 = time.time()
+            #print(f"Concatenating last input window took {t2 - t1} seconds")
+            #print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
+            #print(f"Creating last training data entry list took {t4 - t3} seconds")
+            #print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
     print(f"Creating training data took {t5 - t0} seconds")
     print(f"Concatenating last input window took {t2 - t1} seconds")
     print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
@@ -339,8 +340,15 @@ columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_
 training_columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc']
 data_dir = SIM_DIR
 
-def condition(df):
-    return (df['safe'] == False).any()
+def condition(df, start, end):
+    """
+    Arbitrary condition for safety evaluated on a given interval
+    """
+    current_label = True
+    for j in range(start, end):
+        if not df.loc[j]["safe"]:
+            current_label = False
+    return current_label
 
 # Generate DT from latest run
 generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
