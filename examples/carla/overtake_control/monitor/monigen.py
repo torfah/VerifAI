@@ -96,39 +96,45 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
     # Iterate over data: for each sliding window of size input_window look horzion many steps into the future and check condition over decision window.
     # label sequence of data input window according to condition
     t0 = time.time()
+    training_data_list = []
     for i in range(len(data) - (decision_window + horizon + input_window -1)):
-            if i % 40 == 0: print (f"Creating training data, sliding window at timestep {i}")
-            if i % 120 == 0 and i != 0: print (f"Elapsed time: {time.time() - t0} seconds")
-            t1 = time.time()
-            # collect data within an input_window
-            current_input_window_data = pd.DataFrame(columns= columns)
-            for j in range(i,i + input_window):
-                    current_input_window_data.loc[j] = data.loc[j,columns]
-            current_input_window_data.reset_index(drop=True)
-            # print(current_input_window_data)
+        if i % 40 == 0: print (f"Creating training data, sliding window at timestep {i}")
+        if i % 120 == 0 and i != 0: print (f"Elapsed time: {time.time() - t0} seconds")
+        t1 = time.time()
+        # collect data within an input_window
+        current_input_window_data = pd.DataFrame(columns= columns)
+        for j in range(i,i + input_window):
+                current_input_window_data.loc[j] = data.loc[j,columns]
+        current_input_window_data.reset_index(drop=True)
+        # Testing
+        # Must be a python list to handle True/False values
+        entry_new = data.loc[i:i+input_window, training_columns].to_numpy().flatten().tolist()
+        # print(current_input_window_data)
 
-            # check condition for the collected data
-            t2 = time.time()
-            current_label = condition(data, i + input_window + horizon, i + input_window + horizon + decision_window)
+        # check condition for the collected data
+        t2 = time.time()
+        current_label = condition(data, i + input_window + horizon, i + input_window + horizon + decision_window)
 
-            # create new training_data entry
-            t3 = time.time()
-            entry = []
-            for j in range(i,i+len(current_input_window_data)):
-                    for c in training_columns:
-                            entry.append(current_input_window_data.loc[j,[c]].values[0])
+        # create new training_data entry
+        t3 = time.time()
+        entry = []
+        for j in range(i,i+len(current_input_window_data)):
+                for c in training_columns:
+                        entry.append(current_input_window_data.loc[j,[c]].values[0])
+        # Create a row for the training data CSV as a python list, concatenate these at end?
+        entry.append(current_label)
+        entry_new = np.append(entry_new, current_label)
 
-            entry.append(current_label)
-
-            t4 = time.time()
-            # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
-            panda_entry = pd.DataFrame([entry], columns=training_data_columns)
-            training_data = training_data.append(panda_entry,ignore_index=True)
-            t5 = time.time()
-            #print(f"Concatenating last input window took {t2 - t1} seconds")
-            #print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
-            #print(f"Creating last training data entry list took {t4 - t3} seconds")
-            #print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
+        t4 = time.time()
+        # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
+        panda_entry = pd.DataFrame([entry], columns=training_data_columns)
+        training_data = training_data.append(panda_entry,ignore_index=True)
+        t5 = time.time()
+        #print(f"Concatenating last input window took {t2 - t1} seconds")
+        #print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
+        #print(f"Creating last training data entry list took {t4 - t3} seconds")
+        #print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
+    
     print(f"Creating training data took {t5 - t0} seconds")
     print(f"Concatenating last input window took {t2 - t1} seconds")
     print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
@@ -346,7 +352,7 @@ def condition(df, start, end):
     """
     current_label = True
     for j in range(start, end):
-        if not df.loc[j]["safe"]:
+        if not df.loc[j, "safe"]:
             current_label = False
     return current_label
 
