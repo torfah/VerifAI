@@ -98,47 +98,23 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
     t0 = time.time()
     training_data_list = []
     for i in range(len(data) - (decision_window + horizon + input_window -1)):
-        if i % 40 == 0: print (f"Creating training data, sliding window at timestep {i}")
-        if i % 120 == 0 and i != 0: print (f"Elapsed time: {time.time() - t0} seconds")
+        if i % 100 == 0: print (f"Creating training data, sliding window at timestep {i}")
+        if i % 200 == 0 and i != 0: print (f"Elapsed time: {time.time() - t0} seconds")
         t1 = time.time()
         # collect data within an input_window
-        current_input_window_data = pd.DataFrame(columns= columns)
-        for j in range(i,i + input_window):
-                current_input_window_data.loc[j] = data.loc[j,columns]
-        current_input_window_data.reset_index(drop=True)
-        # Testing
         # Must be a python list to handle True/False values. df indexing is inclusive on both ends
-        entry_new = data.loc[i:i+input_window-1, training_columns].to_numpy().flatten().tolist()
-
-
+        entry = data.loc[i:i+input_window-1, training_columns].to_numpy().flatten().tolist()
         # check condition for the collected data
         t2 = time.time()
         current_label = condition(data, i + input_window + horizon, i + input_window + horizon + decision_window)
-
         # create new training_data entry
         t3 = time.time()
-        entry = []
-        for j in range(i,i+len(current_input_window_data)):
-                for c in training_columns:
-                        entry.append(current_input_window_data.loc[j,[c]].values[0])
-        # Create a row for the training data CSV as a python list, concatenate these at end?
         entry.append(current_label)
-        entry_new.append(current_label)
         t4 = time.time()
-        # if not (training_data.loc[:,training_data.columns != "flag"] == entry[:-1]).all(1).any():
-        panda_entry = pd.DataFrame([entry], columns=training_data_columns)
-        training_data = training_data.append(panda_entry,ignore_index=True)
-        training_data_list.append(entry_new)
-        #print(f"training data cols length: {len(training_data_columns)}")
-        #print(f"entry new length: {len(entry_new)}")
-        #print(f"panda entry shape: {panda_entry.shape}")
+        training_data_list.append(entry)
         t5 = time.time()
-        #print(f"Concatenating last input window took {t2 - t1} seconds")
-        #print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
-        #print(f"Creating last training data entry list took {t4 - t3} seconds")
-        #print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
     # Create dataframe from list of lists
-    training_data_new = pd.DataFrame(data=training_data_list, columns=training_data_columns)
+    training_data = pd.DataFrame(data=training_data_list, columns=training_data_columns)
     t6 = time.time()
     print(f"Creating training data took {t5 - t0} seconds")
     print(f"Concatenating last input window took {t2 - t1} seconds")
@@ -146,12 +122,7 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
     print(f"Creating last training data entry list took {t4 - t3} seconds")
     print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
     print(f"Creating new dataframe from list took {t6 - t5} seconds")
-    print(f"Dataframes equal: {training_data.equals(training_data_new)}")
-    print(f"original shape: {training_data.shape}, new shape: {training_data_new.shape}")
-    print(f"original columns: {training_data.columns}, new columns: {training_data_new.columns}")
-    # Write both to CSV for testing
-    training_data.to_csv(f"{SIM_DIR}/training_data/training_data_test.csv",index=False,header=False)
-    training_data_new.to_csv(f"{SIM_DIR}/training_data/training_data_new_test.csv",index=False,header=False)
+
     # print(training_data)
     return training_data
 
