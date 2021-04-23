@@ -12,6 +12,8 @@ import examples.carla.overtake_control.simpath.monitor as simplex_monitor
 '''Agent that follows road waypoints (prioritizing a straight
 trajectory if multiple options available) using longitudinal
 and lateral PID.'''
+def d_angle(a, b):
+    return abs((a - b + 180) % 360 - 180)
 class SimplexAgent(Agent):
 
     def __init__(self, vehicle, opt_dict=None):
@@ -35,8 +37,6 @@ class SimplexAgent(Agent):
         self.timestamp = 0
         self.buffer=[]
     def add_next_waypoints(self, waypoints, radius):
-        def d_angle(a, b):
-            return abs((a - b + 180) % 360 - 180)
 
         if not waypoints:
             current_w = self._map.get_waypoint(self._vehicle.get_location())
@@ -97,10 +97,10 @@ class SimplexAgent(Agent):
         do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False) 
         if do_AC and self.isBack2Center:
             v_yaw = self._vehicle.get_transform().rotation.yaw
-            yaw_diff8 = int( abs(self.waypoints[8].transform.rotation.yaw - v_yaw) )
-            yaw_diff0 = int( abs(self.waypoints[0].transform.rotation.yaw - v_yaw) )
+            yaw_diff8 = d_angle(self.waypoints[8].transform.rotation.yaw, v_yaw)
+            yaw_diff0 = d_angle(self.waypoints[0].transform.rotation.yaw, v_yaw)
             
-            control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0%180, yaw_diff8%180)
+            control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0, yaw_diff8)
         else:
             if not self.safe_waypoints:
                 self.safe_waypoints = self.waypoints[:1]
@@ -120,7 +120,6 @@ class SimplexAgent(Agent):
         get_scalar = lambda vec: 3.6 * math.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
 
         v_yaw = self._vehicle.get_transform().rotation.yaw
-        if v_yaw < 0: v_yaw += 360
         self.features['v'] = get_scalar(self._vehicle.get_velocity())
         #self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
         #self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
@@ -128,9 +127,8 @@ class SimplexAgent(Agent):
         for i in range(5, -1, -1):
             waypoint = self.waypoints[i]
             w_yaw = waypoint.transform.rotation.yaw 
-            if w_yaw < 0: w_yaw += 360
 
-            diff_yaw = abs(math.tan(math.radians( abs(v_yaw - w_yaw) )))
+            diff_yaw = abs(math.tan(math.radians( d_angle(v_yaw , w_yaw) )))
             distance = distance_vehicle(waypoint, self._vehicle.get_transform())
             dtc = diff_yaw * distance 
             #self.features[f'waypoint_{i}_dyaw'] = diff_yaw
