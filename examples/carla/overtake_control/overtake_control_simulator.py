@@ -23,7 +23,7 @@ class overtake_control_task(carla_task):
                  carla_host='127.0.0.1',
                  carla_port=2000,
                  carla_timeout=4.0,
-                 world_map='Town02'):
+                 world_map='Town02'): #this no longer takes effect, see carla_task: run_task()
         super().__init__(
             n_sim_steps=n_sim_steps,
             display_dim=display_dim,
@@ -43,23 +43,38 @@ class overtake_control_task(carla_task):
         self.ego_target_speed = init_conds.ego_target_speed[0]
 
         # PID controller parameters
-        pid_opt_dict = {
-            'target_speed': self.ego_target_speed,
+        ego_opt_dict = {
+            'target_speed': self.ego_target_speed
+        }
+        other_opt_dict = {
+            'other_target_speed': init_conds.other_target_speed[0]
         }
 
         # Deterministic blueprint, spawnpoint.
         ego_blueprint = 'vehicle.audi.a2'
         ego_spawn = self.world.map.get_spawn_points()[1]
         ego_location = ego_spawn.location
+        ego_heading = ego_spawn.get_forward_vector()
+
+        other_blueprint = 'vehicle.audi.tt'
+        other_location = ego_location + init_conds.initial_dist[0] * ego_heading
+        other_spawn = carla.Transform(other_location, ego_spawn.rotation)
 
         self.ego_vehicle = self.world.add_vehicle(SimplexAgent,
-                                                  control_params=pid_opt_dict,
+                                                  control_params=ego_opt_dict,
                                                   blueprint_filter=ego_blueprint,
                                                   spawn=ego_spawn,
                                                   has_collision_sensor=True,
                                                   has_lane_sensor=True,
                                                   ego=True)
 
+        self.other_vehicle = self.world.add_vehicle(PIDAgent,
+                                                    control_params=other_opt_dict,
+                                                    blueprint_filter=other_blueprint,
+                                                    spawn=other_spawn,
+                                                    has_collision_sensor=False,
+                                                    has_lane_sensor=False,
+                                                    ego=False)
     def trajectory_definition(self):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)
