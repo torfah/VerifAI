@@ -14,10 +14,10 @@ trajectory if multiple options available) using longitudinal
 and lateral PID.'''
 def d_angle(a, b):
     return abs((a - b + 180) % 360 - 180)
-class SimplexAgent(Agent):
+class OtherSimplexAgent(Agent):
 
     def __init__(self, vehicle, opt_dict=None):
-        super(SimplexAgent, self).__init__(vehicle)
+        super(OtherSimplexAgent, self).__init__(vehicle)
         safe_speed = 10.0
         if opt_dict:
             if 'target_speed' in opt_dict:
@@ -29,55 +29,29 @@ class SimplexAgent(Agent):
 
         self.waypoints = []
         self.safe_waypoints = []
-        self.max_waypoints = 15 
+        self.max_waypoints = 200 
 
         self.radius = self.target_speed / 18  
         self.min_dist = 0.9 * self.radius 
         self.isBack2Center =True 
-        self.timestamp = 0
-        self.buffer=[]
     def add_next_waypoints(self, waypoints, radius):
-
-        def norm(vec):
-            return np.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
-        def norm_dot(a, b):
-            a /= norm(a)
-            b /= norm(b)
-            dot = a.x * b.x + a.y * b.y + a.z * b.z
-            return dot
         if not waypoints:
             current_w = self._map.get_waypoint(self._vehicle.get_location())
             waypoints.append(current_w)
-        vehicles = self._world.get_actors().filter('*vehicle*')
-        other_forward_v = None
-        for v in vehicles:
-            # Check if v is self.
-            if v.id != self._vehicle.id:
-                other_forward_v = v.get_transform().get_forward_vector()
-        assert other_forward_v != None
         while len(waypoints) < self.max_waypoints:
             last_w = waypoints[-1]
-            next_w_list = list(last_w.next(radius))
+            last_heading = last_w.transform.rotation.yaw
+            next_w_list = list(last_w.next(self.radius))
             # Go straight if possible.
             if next_w_list:
-                next_w  = max(next_w_list,
-                              key = lambda w: norm_dot(w.transform.get_forward_vector(), other_forward_v))
+                next_w  = min(next_w_list,
+                              key = lambda w: d_angle(w.transform.rotation.yaw, last_heading))
             else:
                 print('No more waypoints.')
                 return
             waypoints.append(next_w)
 
-    def _write_features(self, iteration):
-        s = str()
-        for key in self.features:
-            s+=f'{key} {self.features[key]} '
-        s+='\n'
-        self.buffer.append([s])
-        if len(self.buffer) >= N_SIM_STEP:
-            with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
-                for s in self.buffer:
-                    f.write(f'{s[0]}')
-    def run_step(self, iteration):
+    def run_step(self):
         transform = self._vehicle.get_transform()
 
         if self.waypoints:
@@ -86,7 +60,7 @@ class SimplexAgent(Agent):
                 self.waypoints = []
 
         # Get more waypoints.
-        if len(self.waypoints) < self.max_waypoints:
+        if len(self.waypoints) < self.max_waypoints // 2:
             self.add_next_waypoints(self.waypoints, self.radius)
 
         # If no more waypoints, stop.
@@ -117,16 +91,13 @@ class SimplexAgent(Agent):
         else:
             if not self.safe_waypoints:
                 self.safe_waypoints = self.waypoints[:1]
-            if len(self.safe_waypoints) < self.max_waypoints:
+            if len(self.safe_waypoints) < self.max_waypoints // 2:
                 self.add_next_waypoints(self.safe_waypoints, self.radius/3)
             while distance_vehicle(self.safe_waypoints[0], transform) < self.min_dist:
                 self.safe_waypoints = self.safe_waypoints[1:]
             control, self.isBack2Center = self.safe_controller.run_step(self.safe_waypoints[0], dtc)
             if self.isBack2Center:
                 self.safe_waypoints = []
-            print ("do_SC", dtc)
-        self._write_features(iteration)
-        self.timestamp += 1
         return control 
 
     def get_features_and_return_dtc(self):

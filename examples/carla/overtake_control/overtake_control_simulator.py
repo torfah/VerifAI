@@ -6,7 +6,7 @@ import numpy as np
 from dotmap import DotMap
 import carla
 
-from verifai.simulators.carla.agents.pid_agent import *
+from verifai.simulators.carla.agents.other_simplex_agent import *
 from verifai.simulators.carla.agents.simplex_agent import *
 from verifai.simulators.carla.agents.overtake_agent import *
 from examples.carla.overtake_control.config import *
@@ -68,7 +68,7 @@ class overtake_control_task(carla_task):
                                                   has_lane_sensor=True,
                                                   ego=True)
 
-        self.other_vehicle = self.world.add_vehicle(PIDAgent,
+        self.other_vehicle = self.world.add_vehicle(OtherSimplexAgent,
                                                     control_params=other_opt_dict,
                                                     blueprint_filter=other_blueprint,
                                                     spawn=other_spawn,

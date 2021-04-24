@@ -1,7 +1,8 @@
 # Scenic cache files
 *.snet
 *.swp
-
+simpath/
+visualization.py
 # Webots temporary files
 .*.wbproj
 

@@ -49,7 +49,6 @@ class PIDsafeController():
             else:
                 control.throttle = 0.0
                 control.brake = 0.5
-                print ("brake")
         else: 
             if dtc < 0.5:
                 self.has_stopped = False
