@@ -134,10 +134,10 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
 def postprocess_data(data):
     """
     Take in a training data dataframe and process it
-    Label all vectors within a certain euclidean distance of a False vector as also False
+    Label all vectors within a certain euclidean distance of a False vector as also False.
+    See config.py for MIN_FEAT_DIST definition
     """
-    MIN_FEAT_DIST = 10  # Experimentally derived
-    
+
     # Construct a list of functions to map across the dataframe, one for each False (violation) row
     data_no_flags = data.drop("flag", axis=1)  # Default inplace=False
     false_rows = data_no_flags[data["flag"] == False] # All rows with flag False (new df)
