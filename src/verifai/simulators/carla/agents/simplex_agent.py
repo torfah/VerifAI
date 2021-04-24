@@ -29,7 +29,7 @@ class SimplexAgent(Agent):
 
         self.waypoints = []
         self.safe_waypoints = []
-        self.max_waypoints = 200
+        self.max_waypoints = 20
 
         self.radius = self.target_speed / 18  
         self.min_dist = 0.9 * self.radius 
@@ -38,17 +38,30 @@ class SimplexAgent(Agent):
         self.buffer=[]
     def add_next_waypoints(self, waypoints, radius):
 
+        def norm(vec):
+            return np.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
+        def norm_dot(a, b):
+            a /= norm(a)
+            b /= norm(b)
+            dot = a.x * b.x + a.y * b.y + a.z * b.z
+            return dot
         if not waypoints:
             current_w = self._map.get_waypoint(self._vehicle.get_location())
             waypoints.append(current_w)
+        vehicles = self._world.get_actors().filter('*vehicle*')
+        other_forward_v = None
+        for v in vehicles:
+            # Check if v is self.
+            if v.id != self._vehicle.id:
+                other_forward_v = v.get_transform().get_forward_vector()
+        assert other_forward_v != None
         while len(waypoints) < self.max_waypoints:
             last_w = waypoints[-1]
-            last_heading = last_w.transform.rotation.yaw
             next_w_list = list(last_w.next(radius))
             # Go straight if possible.
             if next_w_list:
-                next_w  = min(next_w_list,
-                              key = lambda w: d_angle(w.transform.rotation.yaw, last_heading))
+                next_w  = max(next_w_list,
+                              key = lambda w: norm_dot(w.transform.get_forward_vector(), other_forward_v))
             else:
                 print('No more waypoints.')
                 return
