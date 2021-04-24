@@ -47,18 +47,18 @@ class overtake_control_task(carla_task):
             'target_speed': self.ego_target_speed
         }
         other_opt_dict = {
-            'other_target_speed': init_conds.other_target_speed[0]
+            'target_speed': init_conds.other_target_speed[0]
         }
 
         # Deterministic blueprint, spawnpoint.
-        ego_blueprint = 'vehicle.audi.a2'
-        ego_spawn = self.world.map.get_spawn_points()[1]
-        ego_location = ego_spawn.location
-        ego_heading = ego_spawn.get_forward_vector()
+        other_blueprint = 'vehicle.audi.a2'
+        other_spawn = self.world.map.get_spawn_points()[1]
+        other_location = other_spawn.location 
+        other_heading = other_spawn.get_forward_vector()
 
-        other_blueprint = 'vehicle.audi.tt'
-        other_location = ego_location + init_conds.initial_dist[0] * ego_heading
-        other_spawn = carla.Transform(other_location, ego_spawn.rotation)
+        ego_blueprint = 'vehicle.audi.a2'
+        ego_location = other_location - init_conds.initial_dist[0] * other_heading 
+        ego_spawn = carla.Transform(ego_location, other_spawn.rotation)
 
         self.ego_vehicle = self.world.add_vehicle(SimplexAgent,
                                                   control_params=ego_opt_dict,
