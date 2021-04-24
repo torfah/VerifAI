@@ -47,5 +47,6 @@ print(falsifier.error_table.table)
 
 print("Safe Samples")
 print(falsifier.safe_table.table)
-
+if falsifier.error_table.table.empty:
+    falsifier.error_table.table['rho_0'] = ""
 falsifier.error_table.table.to_csv(f'{SIM_DIR}/falsifier.csv')
