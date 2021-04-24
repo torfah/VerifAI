@@ -117,13 +117,17 @@ def create_training_data(csv_file_path, input_window, horizon, decision_window, 
     training_data = pd.DataFrame(data=training_data_list, columns=training_data_columns)
     t6 = time.time()
     print(f"Creating training data took {t5 - t0} seconds")
-    print(f"Concatenating last input window took {t2 - t1} seconds")
-    print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
-    print(f"Creating last training data entry list took {t4 - t3} seconds")
-    print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
-    print(f"Creating new dataframe from list took {t6 - t5} seconds")
+    #print(f"Concatenating last input window took {t2 - t1} seconds")
+    #print(f"Concatenating last decision window and checking condition took {t3 - t2} seconds")
+    #print(f"Creating last training data entry list took {t4 - t3} seconds")
+    #print(f"Creating last training data entry dataframe and appending took {t5 - t4} seconds")
+    #print(f"Creating new dataframe from list took {t6 - t5} seconds")
     # Postprocess data
+    print(f"Before postprocessing: {training_data.flag.value_counts()}")
     training_data = postprocess_data(training_data)
+    print(f"After postprocessing: {training_data.flag.value_counts()}")
+    t7 = time.time()
+    print(f"Postprocessing data took {t7 - t6} seconds")
     # print(training_data)
     return training_data
 
@@ -132,33 +136,42 @@ def postprocess_data(data):
     Take in a training data dataframe and process it
     Label all vectors within a certain euclidean distance of a False vector as also False
     """
-    MIN_FEAT_DIST = 0.1  # Experimentally derived
+    MIN_FEAT_DIST = 10  # Experimentally derived
     
     # Construct a list of functions to map across the dataframe, one for each False (violation) row
-    data_no_flags = data_no_flags.drop("flag", axis=1)  # Default inplace=False
+    data_no_flags = data.drop("flag", axis=1)  # Default inplace=False
     false_rows = data_no_flags[data["flag"] == False] # All rows with flag False (new df)
     false_rows = false_rows.to_numpy()
     relabeling_fns = []  # List of functions that take in a row and return True/False
     for fr in false_rows:
-        fn = lambda row: not (np.linalg.norm(row.drop("flag", axis=1).to_numpy() - fr) < MIN_FEAT_DIST)
+        """
+        def fn(row):
+            n = np.linalg.norm(row.drop("flag").to_numpy() - fr)
+            print(n)
+            return not (n < MIN_FEAT_DIST)
+        """
+        # Speed up by keeping the numpy-converted array somewhere else and getting it by index?
+        # Can use apply(raw=True to pass array but must remove flag col first)
+        fn = lambda row: not (np.linalg.norm(row - fr) < MIN_FEAT_DIST)
         relabeling_fns.append(fn)
 
     # Apply each function row-wise to create a new column with labels indicating whether to revise flag to False
     i = 0
     relabeling_cols = [] # List of tuples containing (name, column data)
     for fn in relabeling_fns:
-        relabeling_cols.append(("rel"+ i, data.apply(fn, axis=1)))
+        if i % 20 == 0: print(f"Mapping relabeling function {i} out of {len(relabeling_fns)}")
+        relabeling_cols.append(("rel" + str(i), data_no_flags.apply(fn, axis=1, raw=True)))
         i += 1
     # Append the relabeling columns
     for n, c in relabeling_cols:
         data[n] = c
 
     # Look at all new label columns and revise flag column if any relabeling entry or initial flag is False
-    relabeling_col_names = [n for n, c in relabeling_cols] + "flag"
+    relabeling_col_names = [n for n, c in relabeling_cols] + ["flag"]
     data["flag"] = ~((~data[relabeling_col_names]).any(axis=1))
     # Remove relabeling columns
     relabeling_col_names.remove("flag")
-    data.drop(relabeling_col_names, inplace=True)
+    data.drop(relabeling_col_names, axis=1, inplace=True)
     return data
 
 def create_monitor_wrapper(dt_import_path, feature_names):
