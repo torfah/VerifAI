@@ -68,7 +68,7 @@ def process_error_tables():
     """
     init_log = read_target_speeds()
     table_df = pd.read_csv(f'{SIM_DIR}/falsifier.csv')
-    table_df = table_df[['point.init_conditions.ego_target_speed[0]', 'rho']]
+    table_df = table_df[['point.init_conditions.ego_target_speed[0]', 'rho_0']]
     os.system(f"rm {SIM_DIR}/*_error_table.csv")
     for sample in init_log:
         output = np.ones((N_SIM_STEP, 1))
