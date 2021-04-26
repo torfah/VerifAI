@@ -21,7 +21,7 @@ class overtake_control_task(carla_task):
                  n_sim_steps=N_SIM_STEP,
                  display_dim=(1280,720),
                  carla_host='127.0.0.1',
-                 carla_port=2000,
+                 carla_port=8000,
                  carla_timeout=4.0,
                  world_map='Town02'): #this no longer takes effect, see carla_task: run_task()
         super().__init__(
@@ -68,13 +68,13 @@ class overtake_control_task(carla_task):
                                                   has_lane_sensor=True,
                                                   ego=True)
 
-        self.other_vehicle = self.world.add_vehicle(PIDAgent,
-                                                    control_params=other_opt_dict,
-                                                    blueprint_filter=other_blueprint,
-                                                    spawn=other_spawn,
-                                                    has_collision_sensor=False,
-                                                    has_lane_sensor=False,
-                                                    ego=False)
+        #self.other_vehicle = self.world.add_vehicle(PIDAgent,
+        #                                            control_params=other_opt_dict,
+        #                                            blueprint_filter=other_blueprint,
+        #                                            spawn=other_spawn,
+        #                                            has_collision_sensor=False,
+        #                                            has_lane_sensor=False,
+        #                                            ego=False)
     def trajectory_definition(self):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)

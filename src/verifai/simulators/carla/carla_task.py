@@ -9,7 +9,7 @@ class carla_task():
                  n_sim_steps=500,
                  display_dim=(1280,720),
                  carla_host='127.0.0.1',
-                 carla_port=2000,
+                 carla_port=8000,
                  carla_timeout=4.0,
                  world_map='Town03',
                  cam_transform=0):
