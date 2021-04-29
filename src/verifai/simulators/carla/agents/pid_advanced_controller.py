@@ -51,7 +51,7 @@ class PIDadvancedController():
         elif yaw_diff8 > thresh: 
             coef = random.uniform(0.7,0.9)
         if self.adaptive_cruise_enable:
-            speed = self.cruise_controller.run_step(target_dist=20, target_speed=self.target_speed,
+            speed = self.cruise_controller.run_step(target_dist=15, target_speed=self.target_speed,
                                                 prev_setpoint=self.prev_target_speed, debug=True)
         else:
             speed = self.target_speed * coef
@@ -104,7 +104,6 @@ class PIDAdaptiveCruiseController():
         self_fvec = np.array([self_fvec.x, self_fvec.y])
         if (other_vl):
             # Find the displacement and distances of all other vehicles in the world relative to the ego car
-            if debug: print(f"Number of other vehicles: {len(other_vl)}")
             disp_vecs = [loc - self_vl for loc in other_vl]
             dists = [self_vl.distance(loc) for loc in other_vl]
             disp_np_vecs = [[v.x, v.y] for v in disp_vecs]
@@ -114,23 +113,20 @@ class PIDAdaptiveCruiseController():
                 # Compute angle between car heading and other vehicle
                 _dot = math.acos(np.clip(np.dot(self_fvec, disp) /
                              (np.linalg.norm(self_fvec) * np.linalg.norm(disp)), -1.0, 1.0))
-                #_cross = np.cross(disp, self_fvec)
-                #if _cross[2] < 0:
-                #    _dot *= -1.0
                 if debug:
-                    print('Displacement vector = {}'.format(disp))
-                    print('Forward vector = {}'.format(self_fvec))
-                    print('Computed angle = {}'.format(_dot))
+                    #print('Displacement vector = {}'.format(disp))
+                    #print('Forward vector = {}'.format(self_fvec))
+                    #print('Computed angle = {}'.format(_dot))
                     pass
                 # If the other vehicle is roughly within pi/6 of the car orientation, consider it "in front"
                 # In debug mode, ignore the angle entirely
-                if  debug or (0 < _dot < 0.5):
+                if debug or (0 < _dot < 0.5):
                     filtered_dists.append(dist)
             # Return the closest distance to anything in front of the car
             current_dist = min(filtered_dists) if filtered_dists else None
 
         if debug:
-            print(f"Current filtered distances from {len(loc_info)} = {filtered_dists}")
+            print(f"Current filtered distances from {len(loc_info)} vehicle(s) = {filtered_dists}, target distance = {target_dist}")
 
         # TODO: take outpout of pid control and smooth pasted on previous speed setpoint before returning
         if current_dist is not None:

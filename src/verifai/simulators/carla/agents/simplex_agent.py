@@ -103,7 +103,7 @@ class SimplexAgent(Agent):
 
         # Draw next waypoint
         draw_waypoints(self._vehicle.get_world(),
-                           self.waypoints[:1],
+                           self.waypoints[:],
                            self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc()
@@ -134,6 +134,14 @@ class SimplexAgent(Agent):
 
         v_yaw = self._vehicle.get_transform().rotation.yaw
         self.features['v'] = get_scalar(self._vehicle.get_velocity())
+
+        # Update other car data
+
+        other_data = self.get_other_car_info()
+
+        self.features['other_heading'] = other_data[1]
+        self.features['other_distance'] = other_data[0]
+
         #self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
         #self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
         dtc = 0
@@ -149,3 +157,21 @@ class SimplexAgent(Agent):
             self.features[f'waypoint_{i}_dtc'] = dtc
         
         return dtc
+
+    def get_other_car_info(self):
+        vehicles = self._world.get_actors().filter('*vehicle*')
+        other_forward_v = None
+        for v in vehicles:
+            # Check if v is self.
+            if v.id != self._vehicle.id:
+                other_vt = v.get_transform()
+        assert other_vt != None
+        self_vt = self._vehicle.get_transform()
+
+        dis_vec = other_vt.location - self_vt.location
+        relative_dis = np.sqrt(dis_vec.x ** 2 + dis_vec.y ** 2 + dis_vec.z ** 2)
+
+        relative_heading = d_angle(other_vt.rotation.yaw , self_vt.rotation.yaw)
+
+
+        return relative_dis, relative_heading

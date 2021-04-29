@@ -54,5 +54,24 @@ class PIDsafeController():
                 self.has_stopped = False
                 isBack2Center = True
                 self.target_speed = self.old_target_speed 
+
+        # TODO: brake if there is a car in front
+        '''
+        vehicles = self._world.get_actors().filter('*vehicle*')
+        other_forward_v = None
+        for v in vehicles:
+            # Check if v is self.
+            if v.id != self._vehicle.id:
+                other_vt = v.get_transform()
+        if (other_vt != None):
+            self_vt = self._vehicle.get_transform()
+            dis_vec = other_vt.location - self_vt.location
+            relative_dis = np.sqrt(dis_vec.x ** 2 + dis_vec.y ** 2 + dis_vec.z ** 2)
+            if relative_dis <= 5:
+                control.throttle = 0.0
+                control.brake = 0.8
+        '''
+
+
         return control, isBack2Center
 
