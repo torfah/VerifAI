@@ -3,6 +3,8 @@ from agents.navigation.agent import *
 from agents.navigation.controller import VehiclePIDController
 import random
 import numpy as np
+from collections import deque
+import math
 
 class PIDadvancedController():
 
@@ -10,7 +12,7 @@ class PIDadvancedController():
 
         # Default params:
         self.target_speed = 20.0
-
+        self.prev_target_speed = self.target_speed
         # Default PID params:
         self.lateral_pid_dict = {
             'K_P': 1.0,
@@ -36,6 +38,7 @@ class PIDadvancedController():
         self.controller = VehiclePIDController(vehicle,
                                               args_lateral=self.lateral_pid_dict,
                                               args_longitudinal=self.longitudinal_pid_dict)
+        self.cruise_controller = PIDAdaptiveCruiseController(vehicle)
 
     def run_step(self, waypoint, yaw_diff0, yaw_diff8):
         coef =1.0
@@ -44,7 +47,10 @@ class PIDadvancedController():
             coef = random.uniform(0.5,0.7)
         elif yaw_diff8 > thresh: 
             coef = random.uniform(0.7,0.9)
-        speed = self.target_speed * coef
+        #speed = self.target_speed * coef
+        speed = self.cruise_controller.run_step(target_dist=30, target_speed=self.target_speed,
+                                                prev_setpoint=self.prev_target_speed, debug=True)
+        self.prev_target_speed = speed
         return self.controller.run_step(speed, waypoint)
 
 class PIDAdaptiveCruiseController():
@@ -65,6 +71,7 @@ class PIDAdaptiveCruiseController():
             :param dt: time differential in seconds
         """
         self._vehicle = vehicle
+        self._world = self._vehicle.get_world()
         self._k_p = K_P
         self._k_d = K_D
         self._k_i = K_I
@@ -82,15 +89,46 @@ class PIDAdaptiveCruiseController():
             :return: target_speed
         """
 
-        # TODO: calculate the distance between the ego car and the closest car in front. 
-        # Return None if there are no cars nearby in front
-        current_dist = 0;
+        # Calculate the distance between the ego car and the closest car in front. 
+        # Set current_dist = None if there are no cars nearby in front
+        current_dist = None;
+        vehicles = self._world.get_actors().filter('*vehicle*')
+        other_vl = [v.get_location() for v in vehicles if v.id != self._vehicle.id]
+        self_vl = self._vehicle.get_location()
+        self_fvec = self._vehicle.get_transform().rotation.get_forward_vector()
+        self_fvec = np.array([self_fvec.x, self_fvec.y, self_fvec.z])
+        if (other_vl):
+            # Find the displacement and distances of all other vehicles in the world relative to the ego car
+            disp_vecs = [loc - self_vl for loc in other_vl]
+            dists = [self_vl.distance(dv) for dv in disp_vecs]
+            disp_vecs = [[v.x, x.y, v.z] for v in disp_vecs]
+            loc_info = list(zip(disp_vecs, dists))
+            filtered_dists = []
+            for disp, dist in loc_info:
+                # Compute angle between car heading and other vehicle
+
+                _dot = math.acos(np.clip(np.dot(self_fvec, disp) /
+                             (np.linalg.norm(self_fvec) * np.linalg.norm(disp)), -1.0, 1.0))
+                _cross = np.cross(disp, self_fvec)
+                if _cross[2] < 0:
+                    _dot *= -1.0
+                if debug:
+                    print('Computed angle = {}'.format(_dot))
+                # If the other vehicle is roughly within pi/3 of the car orientation, consider it "in front"
+                if 0 < _dot < 1:
+                    filtered_dists.append(dist)
+            # Return the closest distance to anything in front of the car
+            current_dist = min(filtered_dists)
 
         if debug:
-            print('Current speed = {}'.format(current_dist))
+            print('Current closest dist = {}'.format(current_dist))
 
         # TODO: take outpout of pid control and smooth pasted on previous speed setpoint before returning
-        return self._pid_control(target_dist, current_dist)
+        if current_dist is not None:
+            new_setpoint = self._pid_control(target_dist, current_dist)
+        else:
+            new_setpoint = target_speed
+        return new_setpoint
 
     def _pid_control(self, target_dist, current_dist):
         """
