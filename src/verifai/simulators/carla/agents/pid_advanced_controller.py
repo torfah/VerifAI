@@ -47,3 +47,68 @@ class PIDadvancedController():
         speed = self.target_speed * coef
         return self.controller.run_step(speed, waypoint)
 
+class PIDAdaptiveCruiseController():
+    """
+    PIDAdaptiveCruiseController adjust a target speed based on the distance to a car in front
+    to feed into a VehiclePIDController for lateral and longitudinal control
+    """
+
+
+    def __init__(self, vehicle, K_P=1.0, K_D=0.0, K_I=0.0, dt=0.03):
+        """
+        Constructor method.
+
+            :param vehicle: actor to apply to local planner logic onto
+            :param K_P: Proportional term
+            :param K_D: Differential term
+            :param K_I: Integral term
+            :param dt: time differential in seconds
+        """
+        self._vehicle = vehicle
+        self._k_p = K_P
+        self._k_d = K_D
+        self._k_i = K_I
+        self._dt = dt
+        self._error_buffer = deque(maxlen=10)
+
+    def run_step(self, target_dist, target_speed, prev_setpoint, debug=False):
+        """
+        Execute one step of control to reach a given distance to the car in front.
+
+            :param target_dist: target distance in m
+            :param target_speed: target speed on an open road (no car in front)
+            :param prev_setpoint: teh previous setpoint for vehicle speed in km/h
+            :param debug: boolean for debugging
+            :return: target_speed
+        """
+
+        # TODO: calculate the distance between the ego car and the closest car in front. 
+        # Return None if there are no cars nearby in front
+        current_dist = 0;
+
+        if debug:
+            print('Current speed = {}'.format(current_dist))
+
+        # TODO: take outpout of pid control and smooth pasted on previous speed setpoint before returning
+        return self._pid_control(target_dist, current_dist)
+
+    def _pid_control(self, target_dist, current_dist):
+        """
+        Estimate the throttle/brake of the vehicle based on the PID equations
+
+            :param target_dist:  target distance to next car in m
+            :param current_dist: current distance to next car in m
+            :return: speed control setpoint
+        """
+
+        error = target_dist - current_dist
+        self._error_buffer.append(error)
+
+        if len(self._error_buffer) >= 2:
+            _de = (self._error_buffer[-1] - self._error_buffer[-2]) / self._dt
+            _ie = sum(self._error_buffer) * self._dt
+        else:
+            _de = 0.0
+            _ie = 0.0
+
+        return np.clip((self._k_p * error) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
