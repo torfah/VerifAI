@@ -13,6 +13,7 @@ class PIDadvancedController():
         # Default params:
         self.target_speed = 20.0
         self.prev_target_speed = self.target_speed
+        self.adaptive_cruise_enable = False  # Can be overriden with opt dict
         # Default PID params:
         self.lateral_pid_dict = {
             'K_P': 1.0,
@@ -35,6 +36,8 @@ class PIDadvancedController():
                 self.lateral_pid_dict = opt_dict['lateral_pid_dict']
             if 'longitudinal_pid_dict' in opt_dict:
                 self.longitudinal_pid_dict = opt_dict['longitudinal_pid_dict']
+            if 'adaptive_cruise_enable' in opt_dict:
+                self.adaptive_cruise_enable = opt_dict['adaptive_cruise_enable']
         self.controller = VehiclePIDController(vehicle,
                                               args_lateral=self.lateral_pid_dict,
                                               args_longitudinal=self.longitudinal_pid_dict)
@@ -47,9 +50,11 @@ class PIDadvancedController():
             coef = random.uniform(0.5,0.7)
         elif yaw_diff8 > thresh: 
             coef = random.uniform(0.7,0.9)
-        #speed = self.target_speed * coef
-        speed = self.cruise_controller.run_step(target_dist=30, target_speed=self.target_speed,
+        if self.adaptive_cruise_enable:
+            speed = self.cruise_controller.run_step(target_dist=20, target_speed=self.target_speed,
                                                 prev_setpoint=self.prev_target_speed, debug=True)
+        else:
+            speed = self.target_speed * coef
         self.prev_target_speed = speed
         return self.controller.run_step(speed, waypoint)
 
@@ -60,7 +65,7 @@ class PIDAdaptiveCruiseController():
     """
 
 
-    def __init__(self, vehicle, K_P=1.0, K_D=0.0, K_I=0.0, dt=0.03):
+    def __init__(self, vehicle, K_P=4, K_D=0.0, K_I=0.5, dt=0.05):
         """
         Constructor method.
 
@@ -96,38 +101,44 @@ class PIDAdaptiveCruiseController():
         other_vl = [v.get_location() for v in vehicles if v.id != self._vehicle.id]
         self_vl = self._vehicle.get_location()
         self_fvec = self._vehicle.get_transform().rotation.get_forward_vector()
-        self_fvec = np.array([self_fvec.x, self_fvec.y, self_fvec.z])
+        self_fvec = np.array([self_fvec.x, self_fvec.y])
         if (other_vl):
             # Find the displacement and distances of all other vehicles in the world relative to the ego car
+            if debug: print(f"Number of other vehicles: {len(other_vl)}")
             disp_vecs = [loc - self_vl for loc in other_vl]
-            dists = [self_vl.distance(dv) for dv in disp_vecs]
-            disp_vecs = [[v.x, x.y, v.z] for v in disp_vecs]
-            loc_info = list(zip(disp_vecs, dists))
+            dists = [self_vl.distance(loc) for loc in other_vl]
+            disp_np_vecs = [[v.x, v.y] for v in disp_vecs]
+            loc_info = list(zip(disp_np_vecs, dists))
             filtered_dists = []
             for disp, dist in loc_info:
                 # Compute angle between car heading and other vehicle
-
                 _dot = math.acos(np.clip(np.dot(self_fvec, disp) /
                              (np.linalg.norm(self_fvec) * np.linalg.norm(disp)), -1.0, 1.0))
-                _cross = np.cross(disp, self_fvec)
-                if _cross[2] < 0:
-                    _dot *= -1.0
+                #_cross = np.cross(disp, self_fvec)
+                #if _cross[2] < 0:
+                #    _dot *= -1.0
                 if debug:
+                    print('Displacement vector = {}'.format(disp))
+                    print('Forward vector = {}'.format(self_fvec))
                     print('Computed angle = {}'.format(_dot))
-                # If the other vehicle is roughly within pi/3 of the car orientation, consider it "in front"
-                if 0 < _dot < 1:
+                    pass
+                # If the other vehicle is roughly within pi/6 of the car orientation, consider it "in front"
+                # In debug mode, ignore the angle entirely
+                if  debug or (0 < _dot < 0.5):
                     filtered_dists.append(dist)
             # Return the closest distance to anything in front of the car
-            current_dist = min(filtered_dists)
+            current_dist = min(filtered_dists) if filtered_dists else None
 
         if debug:
-            print('Current closest dist = {}'.format(current_dist))
+            print(f"Current filtered distances from {len(loc_info)} = {filtered_dists}")
 
         # TODO: take outpout of pid control and smooth pasted on previous speed setpoint before returning
         if current_dist is not None:
-            new_setpoint = self._pid_control(target_dist, current_dist)
+            new_setpoint = min((self._pid_control(target_dist, current_dist), target_speed))
         else:
             new_setpoint = target_speed
+        if debug:
+            print(f"Adaptive setpoint: {new_setpoint}")
         return new_setpoint
 
     def _pid_control(self, target_dist, current_dist):
@@ -139,7 +150,7 @@ class PIDAdaptiveCruiseController():
             :return: speed control setpoint
         """
 
-        error = target_dist - current_dist
+        error = current_dist - target_dist
         self._error_buffer.append(error)
 
         if len(self._error_buffer) >= 2:
@@ -149,4 +160,4 @@ class PIDAdaptiveCruiseController():
             _de = 0.0
             _ie = 0.0
 
-        return np.clip((self._k_p * error) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
+        return np.clip((self._k_p * error) + (self._k_d * _de) + (self._k_i * _ie), 0, 100)

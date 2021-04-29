@@ -44,10 +44,12 @@ class overtake_control_task(carla_task):
 
         # PID controller parameters
         ego_opt_dict = {
-            'target_speed': self.ego_target_speed
+            'target_speed': self.ego_target_speed,
+            'adaptive_cruise_enable': True
         }
         other_opt_dict = {
-            'target_speed': init_conds.other_target_speed[0]
+            'target_speed': init_conds.other_target_speed[0],
+            'adaptive_cruise_enable': False
         }
 
         # Deterministic blueprint, spawnpoint.
