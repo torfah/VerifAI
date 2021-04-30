@@ -54,7 +54,8 @@ class overtake_control_task(carla_task):
 
         # Deterministic blueprint, spawnpoint.
         other_blueprint = 'vehicle.audi.a2'
-        other_spawn = self.world.map.get_spawn_points()[1]
+        spawn_points = self.world.map.get_spawn_points()
+        other_spawn = spawn_points[1]
         other_location = other_spawn.location 
         other_heading = other_spawn.get_forward_vector()
 
@@ -77,6 +78,8 @@ class overtake_control_task(carla_task):
                                                     has_collision_sensor=False,
                                                     has_lane_sensor=False,
                                                     ego=False)
+        middle_location = spawn_points[len(spawn_points)//2].location
+        self.world.generate_waypoints(ego_location, other_location, middle_location)
     def trajectory_definition(self):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)

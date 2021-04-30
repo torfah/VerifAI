@@ -43,7 +43,8 @@ import numpy as np
 import carla
 from carla import ColorConverter as cc
 from examples.carla.overtake_control.config import N_SIM_STEP 
-
+from agents.navigation.global_route_planner import GlobalRoutePlanner
+from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
@@ -215,6 +216,9 @@ class World(object):
         self.hud = hud
         self.entities = []
         self.ego = None
+        self.other = None
+        self.w1 = []
+        self.w2 = []
         self.camera_manager = None
         self._weather_presets = find_weather_presets()
         self._weather_index = 0
@@ -243,7 +247,28 @@ class World(object):
         self.entities.append(vehicle)
         if ego:
             self.ego = vehicle
+        else:
+            self.other = vehicle
         return vehicle
+    def assign_waypoints(self):
+        self.ego.control_actor.waypoints = self.w1.copy()
+        self.other.control_actor.waypoints = self.w2.copy()
+    def generate_waypoints(self, ego_location, other_location, middle_location):
+        sampling_resolution = 2
+        dao = GlobalRoutePlannerDAO(self.map, sampling_resolution)
+        grp = GlobalRoutePlanner(dao)
+        grp.setup() 
+        ego_other_waypoints = grp.trace_route(ego_location, other_location)
+        start_middle_waypoints = grp.trace_route(other_location, middle_location)
+        middle_start_waypoints = grp.trace_route(middle_location, other_location)
+        for (waypoint, road_option) in ego_other_waypoints:
+            self.w1.append(waypoint)
+        for (waypoint, road_option) in start_middle_waypoints:
+            self.w1.append(waypoint)
+            self.w2.append(waypoint)
+        for (waypoint, road_option) in middle_start_waypoints:
+            self.w1.append(waypoint)
+            self.w2.append(waypoint)
 
     def add_pedestrian(self, blueprint_filter='walker.pedestrian.*',
                        spawn=None, color=None, ego=False):

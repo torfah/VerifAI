@@ -56,6 +56,7 @@ class carla_task():
             # print("[carla_task] World setup complete.")
             self.use_sample(sample)
             self.world.restart()
+            self.world.assign_waypoints()
             self.timestep = 0
             while self.timestep < self.n_sim_steps:
                 self.world.timestep = self.timestep
