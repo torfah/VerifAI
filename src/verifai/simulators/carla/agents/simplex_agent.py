@@ -121,7 +121,10 @@ class SimplexAgent(Agent):
                 self.add_next_waypoints(self.safe_waypoints, self.radius/3)
             while distance_vehicle(self.safe_waypoints[0], transform) < self.min_dist:
                 self.safe_waypoints = self.safe_waypoints[1:]
-            control, self.isBack2Center = self.safe_controller.run_step(self.safe_waypoints[0], dtc)
+
+            other_rdis, other_rheading = self.get_other_car_info()
+            control, self.isBack2Center = self.safe_controller.run_step(self.safe_waypoints[0], dtc, other_rdis, other_rheading)
+
             if self.isBack2Center:
                 self.safe_waypoints = []
             print ("do_SC", dtc)
@@ -137,10 +140,10 @@ class SimplexAgent(Agent):
 
         # Update other car data
 
-        other_data = self.get_other_car_info()
-
-        self.features['other_heading'] = other_data[1]
-        self.features['other_distance'] = other_data[0]
+        other_rdis, other_rheading = self.get_other_car_info()
+        if other_rdis is not None:
+            self.features['other_heading'] = other_rheading
+            self.features['other_distance'] = other_rdis
 
         #self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
         #self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
@@ -165,7 +168,10 @@ class SimplexAgent(Agent):
             # Check if v is self.
             if v.id != self._vehicle.id:
                 other_vt = v.get_transform()
-        assert other_vt != None
+
+        if other_vt is None:
+            return None, None
+
         self_vt = self._vehicle.get_transform()
 
         dis_vec = other_vt.location - self_vt.location

@@ -36,7 +36,7 @@ class PIDsafeController():
                                               args_longitudinal=self.longitudinal_pid_dict)
         self.has_stopped = False
         self._vehicle = vehicle
-    def run_step(self, waypoint, dtc):
+    def run_step(self, waypoint, dtc, other_rdis=None, other_rheading=None):
 
         current_speed = get_speed(self._vehicle) 
 
@@ -56,21 +56,13 @@ class PIDsafeController():
                 self.target_speed = self.old_target_speed 
 
         # TODO: brake if there is a car in front
-        '''
-        vehicles = self._world.get_actors().filter('*vehicle*')
-        other_forward_v = None
-        for v in vehicles:
-            # Check if v is self.
-            if v.id != self._vehicle.id:
-                other_vt = v.get_transform()
-        if (other_vt != None):
-            self_vt = self._vehicle.get_transform()
-            dis_vec = other_vt.location - self_vt.location
-            relative_dis = np.sqrt(dis_vec.x ** 2 + dis_vec.y ** 2 + dis_vec.z ** 2)
-            if relative_dis <= 5:
+
+        if (other_rdis is not None):
+            #print(f"--> dis:{other_rdis} heading:{other_rheading}")
+            if (other_rdis <= 5) and (-45<=other_rheading<=45):
+                print(f"SC: Emergency Break: dis:{other_rdis} heading:{other_rheading}")
                 control.throttle = 0.0
                 control.brake = 0.8
-        '''
 
 
         return control, isBack2Center
