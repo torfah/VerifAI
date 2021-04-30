@@ -38,30 +38,17 @@ class SimplexAgent(Agent):
         self.buffer=[]
     def add_next_waypoints(self, waypoints, radius):
 
-        def norm(vec):
-            return np.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
-        def norm_dot(a, b):
-            a /= norm(a)
-            b /= norm(b)
-            dot = a.x * b.x + a.y * b.y + a.z * b.z
-            return dot
         if not waypoints:
             current_w = self._map.get_waypoint(self._vehicle.get_location())
             waypoints.append(current_w)
-        vehicles = self._world.get_actors().filter('*vehicle*')
-        other_forward_v = None
-        for v in vehicles:
-            # Check if v is self.
-            if v.id != self._vehicle.id:
-                other_forward_v = v.get_transform().get_forward_vector()
-        assert other_forward_v != None
         while len(waypoints) < self.max_waypoints:
             last_w = waypoints[-1]
-            next_w_list = list(last_w.next(radius))
+            last_heading = last_w.transform.rotation.yaw
+            next_w_list = list(last_w.next(self.radius))
             # Go straight if possible.
             if next_w_list:
-                next_w  = max(next_w_list,
-                              key = lambda w: norm_dot(w.transform.get_forward_vector(), other_forward_v))
+                next_w  = min(next_w_list,
+                              key = lambda w: d_angle(w.transform.rotation.yaw, last_heading))
             else:
                 print('No more waypoints.')
                 return
@@ -115,18 +102,18 @@ class SimplexAgent(Agent):
             
             control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0, yaw_diff8)
         else:
-            if not self.safe_waypoints:
-                self.safe_waypoints = self.waypoints[:1]
-            if len(self.safe_waypoints) < self.max_waypoints:
-                self.add_next_waypoints(self.safe_waypoints, self.radius/3)
-            while distance_vehicle(self.safe_waypoints[0], transform) < self.min_dist:
-                self.safe_waypoints = self.safe_waypoints[1:]
+           # if not self.safe_waypoints:
+           #     self.safe_waypoints = self.waypoints[:1]
+           # if len(self.safe_waypoints) < self.max_waypoints:
+           #     self.add_next_waypoints(self.safe_waypoints, self.radius/3)
+           # while distance_vehicle(self.safe_waypoints[0], transform) < self.min_dist:
+           #     self.safe_waypoints = self.safe_waypoints[1:]
 
             other_rdis, other_rheading = self.get_other_car_info()
-            control, self.isBack2Center = self.safe_controller.run_step(self.safe_waypoints[0], dtc, other_rdis, other_rheading)
+            control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc, other_rdis, other_rheading)
 
-            if self.isBack2Center:
-                self.safe_waypoints = []
+            #if self.isBack2Center:
+            #    self.safe_waypoints = []
             print ("do_SC", dtc)
         self._write_features(iteration)
         self.timestamp += 1

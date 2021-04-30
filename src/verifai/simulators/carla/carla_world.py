@@ -253,8 +253,7 @@ class World(object):
     def assign_waypoints(self):
         self.ego.control_actor.waypoints = self.w1.copy()
         self.other.control_actor.waypoints = self.w2.copy()
-    def generate_waypoints(self, ego_location, other_location, middle_location):
-        sampling_resolution = 2
+    def generate_waypoints(self, ego_location, other_location, middle_location, sampling_resolution):
         dao = GlobalRoutePlannerDAO(self.map, sampling_resolution)
         grp = GlobalRoutePlanner(dao)
         grp.setup() 

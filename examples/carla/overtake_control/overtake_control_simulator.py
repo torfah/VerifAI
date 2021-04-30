@@ -23,7 +23,7 @@ class overtake_control_task(carla_task):
                  carla_host='127.0.0.1',
                  carla_port=2000,
                  carla_timeout=4.0,
-                 world_map='Town02'): #this no longer takes effect, see carla_task: run_task()
+                 world_map='Town01'): #this no longer takes effect, see carla_task: run_task()
         super().__init__(
             n_sim_steps=n_sim_steps,
             display_dim=display_dim,
@@ -79,7 +79,8 @@ class overtake_control_task(carla_task):
                                                     has_lane_sensor=False,
                                                     ego=False)
         middle_location = spawn_points[len(spawn_points)//2].location
-        self.world.generate_waypoints(ego_location, other_location, middle_location)
+        resolution = self.ego_target_speed /18 
+        self.world.generate_waypoints(ego_location, other_location, middle_location, resolution)
     def trajectory_definition(self):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)
