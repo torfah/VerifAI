@@ -251,6 +251,8 @@ class World(object):
             self.other = vehicle
         return vehicle
     def assign_waypoints(self):
+        import time 
+        time.sleep(2)
         self.ego.control_actor.waypoints = self.w1.copy()
         self.other.control_actor.waypoints = self.w2.copy()
     def generate_waypoints(self, ego_location, other_location, middle_location, ego_resolution, other_resolution):

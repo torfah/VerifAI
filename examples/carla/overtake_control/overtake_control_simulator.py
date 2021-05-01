@@ -68,9 +68,13 @@ class overtake_control_task(carla_task):
         other_location = other_spawn.location 
         other_heading = other_spawn.get_forward_vector()
 
+        vehicle_waypoint =self.world.map.get_waypoint(other_location)
+        ego_waypoint = vehicle_waypoint.previous(int(initial_dist))[0]
+
         ego_blueprint = 'vehicle.audi.a2'
-        ego_location = other_location - initial_dist * other_heading 
-        ego_spawn = carla.Transform(ego_location, other_spawn.rotation)
+        ego_location = ego_waypoint.transform.location
+        ego_rotation = ego_waypoint.transform.rotation
+        ego_spawn = carla.Transform(ego_location, ego_rotation)
 
         self.ego_vehicle = self.world.add_vehicle(SimplexAgent,
                                                   control_params=ego_opt_dict,
