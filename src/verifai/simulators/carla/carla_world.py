@@ -253,21 +253,32 @@ class World(object):
     def assign_waypoints(self):
         self.ego.control_actor.waypoints = self.w1.copy()
         self.other.control_actor.waypoints = self.w2.copy()
-    def generate_waypoints(self, ego_location, other_location, middle_location, sampling_resolution):
+    def generate_waypoints(self, ego_location, other_location, middle_location, ego_resolution, other_resolution):
+        ego_grp = self.get_planner(ego_resolution)
+        other_grp = self.get_planner(other_resolution)
+
+        ego_other_waypoints = ego_grp.trace_route(ego_location, other_location)
+        for (waypoint, road_option) in ego_other_waypoints:
+            self.w1.append(waypoint)
+        start_middle_waypoints = ego_grp.trace_route(other_location, middle_location)
+        for (waypoint, road_option) in start_middle_waypoints:
+            self.w1.append(waypoint)
+        middle_start_waypoints = ego_grp.trace_route(middle_location, other_location)
+        for (waypoint, road_option) in middle_start_waypoints:
+            self.w1.append(waypoint)
+    
+        start_middle_waypoints = other_grp.trace_route(other_location, middle_location)
+        for (waypoint, road_option) in start_middle_waypoints:
+            self.w2.append(waypoint)
+        middle_start_waypoints = other_grp.trace_route(middle_location, other_location)
+        for (waypoint, road_option) in middle_start_waypoints:
+            self.w2.append(waypoint)
+    
+    def get_planner(self, sampling_resolution):
         dao = GlobalRoutePlannerDAO(self.map, sampling_resolution)
         grp = GlobalRoutePlanner(dao)
         grp.setup() 
-        ego_other_waypoints = grp.trace_route(ego_location, other_location)
-        start_middle_waypoints = grp.trace_route(other_location, middle_location)
-        middle_start_waypoints = grp.trace_route(middle_location, other_location)
-        for (waypoint, road_option) in ego_other_waypoints:
-            self.w1.append(waypoint)
-        for (waypoint, road_option) in start_middle_waypoints:
-            self.w1.append(waypoint)
-            self.w2.append(waypoint)
-        for (waypoint, road_option) in middle_start_waypoints:
-            self.w1.append(waypoint)
-            self.w2.append(waypoint)
+        return grp
 
     def add_pedestrian(self, blueprint_filter='walker.pedestrian.*',
                        spawn=None, color=None, ego=False):

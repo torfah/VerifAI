@@ -23,7 +23,7 @@ class overtake_control_task(carla_task):
                  carla_host='127.0.0.1',
                  carla_port=2000,
                  carla_timeout=4.0,
-                 world_map='Town03'): #this no longer takes effect, see carla_task: run_task()
+                 world_map='Town01'): #this no longer takes effect, see carla_task: run_task()
         super().__init__(
             n_sim_steps=n_sim_steps,
             display_dim=display_dim,
@@ -41,21 +41,21 @@ class overtake_control_task(carla_task):
         self.world.iteration = iteration
         init_conds = sample.init_conditions
         self.ego_target_speed = init_conds.ego_target_speed[0]
-
+        other_target_speed = init_conds.other_target_speed[0]
         # PID controller parameters
         ego_opt_dict = {
             'target_speed': self.ego_target_speed,
             'adaptive_cruise_enable': True
         }
         other_opt_dict = {
-            'target_speed': init_conds.other_target_speed[0],
+            'target_speed': other_target_speed,
             'adaptive_cruise_enable': False
         }
 
         # Deterministic blueprint, spawnpoint.
         other_blueprint = 'vehicle.audi.a2'
         spawn_points = self.world.map.get_spawn_points()
-        other_spawn = spawn_points[1]
+        other_spawn = spawn_points[5]
         other_location = other_spawn.location 
         other_heading = other_spawn.get_forward_vector()
 
@@ -78,9 +78,10 @@ class overtake_control_task(carla_task):
                                                     has_collision_sensor=False,
                                                     has_lane_sensor=False,
                                                     ego=False)
-        middle_location = spawn_points[len(spawn_points)//2].location
-        resolution = self.ego_target_speed /50 
-        self.world.generate_waypoints(ego_location, other_location, middle_location, resolution)
+        middle_location = spawn_points[len(spawn_points)//int(init_conds.middle_point[0])].location
+        ego_resolution = self.ego_target_speed / 50 
+        other_resolution = other_target_speed / 50
+        self.world.generate_waypoints(ego_location, other_location, middle_location, ego_resolution, other_resolution)
     def trajectory_definition(self):
         # Get speed of collision as proportion of target speed.
         ego_collision = [(c[0], c[1] / self.ego_target_speed)

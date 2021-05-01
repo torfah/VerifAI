@@ -10,7 +10,8 @@ init_conditions = Struct({
     'ego_target_speed': Box([65.0, 80.0]),
     'other_target_speed': Box([30.0, 40.0]),
     'map': Categorical(*(m for m in ['Town01', 'Town02', 'Town07'])),
-    'initial_dist': Box([30.0, 40.0])
+    'middle_point' : Box([2, 6]),
+    'initial_dist': Box([10.0, 20.0])
 })
 
 sample_space = {'init_conditions': init_conditions}

@@ -31,7 +31,7 @@ class OtherSimplexAgent(Agent):
         self.safe_waypoints = []
         self.max_waypoints = 200 
 
-        self.radius = self.target_speed / 18  
+        self.radius = self.target_speed / 50 
         self.min_dist = 0.9 * self.radius 
         self.isBack2Center =True 
     def add_next_waypoints(self, waypoints, radius):
@@ -42,9 +42,8 @@ class OtherSimplexAgent(Agent):
             last_w = waypoints[-1]
             last_heading = last_w.transform.rotation.yaw
             next_w_list = list(last_w.next(self.radius))
-            # Go straight if possible.
             if next_w_list:
-                next_w  = min(next_w_list,
+                next_w  = max(next_w_list,
                               key = lambda w: d_angle(w.transform.rotation.yaw, last_heading))
             else:
                 print('No more waypoints.')
