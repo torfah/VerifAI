@@ -98,7 +98,7 @@ class OtherSimplexAgent(Agent):
                            self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc()
-        do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False) 
+        do_AC = True#simplex_monitor.check(self.features, INPUT_WINDOW, False) 
         if do_AC and self.isBack2Center:
             v_yaw = self._vehicle.get_transform().rotation.yaw
             yaw_diff8 = d_angle(self.waypoints[8].transform.rotation.yaw, v_yaw)
@@ -106,15 +106,7 @@ class OtherSimplexAgent(Agent):
             
             control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0, yaw_diff8)
         else:
-            #if not self.safe_waypoints:
-            #    self.safe_waypoints = self.waypoints[:1]
-            #if len(self.safe_waypoints) < self.max_waypoints // 2:
-            #    self.add_next_waypoints(self.safe_waypoints, self.radius/3)
-            #while distance_vehicle(self.safe_waypoints[0], transform) < self.min_dist:
-            #    self.safe_waypoints = self.safe_waypoints[1:]
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
-            #if self.isBack2Center:
-            #    self.safe_waypoints = []
         if self.do_stop:
             if get_speed(self._vehicle) > 1 and timestep - self.start_stop_timestep < 100:
                 control.throttle = 0.0

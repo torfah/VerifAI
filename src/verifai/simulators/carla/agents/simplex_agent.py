@@ -90,8 +90,9 @@ class SimplexAgent(Agent):
                            self.waypoints[:1],
                            self._vehicle.get_location().z + 1.0)
 
-        dtc = self.get_features_and_return_dtc()
-        do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False) 
+        other_rdis, other_rheading = self.get_other_car_info()
+        dtc = self.get_features_and_return_dtc(other_rdis, other_rheading)
+        do_AC = True#simplex_monitor.check(self.features, INPUT_WINDOW, False) 
         if do_AC and self.isBack2Center:
             v_yaw = self._vehicle.get_transform().rotation.yaw
             yaw_diff8 = d_angle(self.waypoints[8].transform.rotation.yaw, v_yaw)
@@ -99,38 +100,23 @@ class SimplexAgent(Agent):
             
             control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0, yaw_diff8)
         else:
-           # if not self.safe_waypoints:
-           #     self.safe_waypoints = self.waypoints[:1]
-           # if len(self.safe_waypoints) < self.max_waypoints:
-           #     self.add_next_waypoints(self.safe_waypoints, self.radius/3)
-           # while distance_vehicle(self.safe_waypoints[0], transform) < self.min_dist:
-           #     self.safe_waypoints = self.safe_waypoints[1:]
-
-            other_rdis, other_rheading = self.get_other_car_info()
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc, other_rdis, other_rheading)
 
-            #if self.isBack2Center:
-            #    self.safe_waypoints = []
             print ("do_SC", dtc)
         self._write_features(iteration)
         self.timestamp += 1
         return control 
 
-    def get_features_and_return_dtc(self):
+    def get_features_and_return_dtc(self, other_rdis, other_rheading):
         get_scalar = lambda vec: 3.6 * math.sqrt(vec.x ** 2 + vec.y ** 2 + vec.z ** 2)
 
         v_yaw = self._vehicle.get_transform().rotation.yaw
         self.features['v'] = get_scalar(self._vehicle.get_velocity())
 
-        # Update other car data
-
-        other_rdis, other_rheading = self.get_other_car_info()
         if other_rdis is not None:
             self.features['other_heading'] = other_rheading
             self.features['other_distance'] = other_rdis
 
-        #self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
-        #self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
         dtc = 0
         for i in range(5, -1, -1):
             waypoint = self.waypoints[i]
@@ -139,8 +125,6 @@ class SimplexAgent(Agent):
             diff_yaw = abs(math.tan(math.radians( d_angle(v_yaw , w_yaw) )))
             distance = distance_vehicle(waypoint, self._vehicle.get_transform())
             dtc = diff_yaw * distance 
-            #self.features[f'waypoint_{i}_dyaw'] = diff_yaw
-            #self.features[f'waypoint_{i}_dist'] = distance
             self.features[f'waypoint_{i}_dtc'] = dtc
         
         return dtc
