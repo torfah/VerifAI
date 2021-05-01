@@ -46,7 +46,7 @@ class carla_task():
                 pygame.HWSURFACE | pygame.DOUBLEBUF
             )
             # print("[carla_task] Setting up world.")
-            #self.world_map = sample[0].init_conditions.map
+            self.world_map = sample[0].init_conditions.map
             if self.client.get_world().get_map().name == self.world_map:
                 self.world = World(self.client.get_world(), self.hud, 
                         cam_transform=self.cam_transform)

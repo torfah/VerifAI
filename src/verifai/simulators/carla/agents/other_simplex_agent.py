@@ -9,6 +9,7 @@ import numpy as np
 import sys
 from examples.carla.overtake_control.config import *
 import examples.carla.overtake_control.simpath.monitor as simplex_monitor
+import random
 '''Agent that follows road waypoints (prioritizing a straight
 trajectory if multiple options available) using longitudinal
 and lateral PID.'''
@@ -22,6 +23,12 @@ class OtherSimplexAgent(Agent):
         if opt_dict:
             if 'target_speed' in opt_dict:
                 self.target_speed = opt_dict['target_speed']
+            if 'stop_time' in opt_dict:
+                self.stopping_time = opt_dict['stop_time']
+            if 'other_num_stops' in opt_dict:
+                num_stops = opt_dict['other_num_stops']
+                self.stop_times = random.sample(range(100, N_SIM_STEP), int( num_stops ))
+                self.stop_times.sort()
         self.safe_controller = PIDsafeController(vehicle, safe_speed, opt_dict)
         self.advanced_controller = PIDadvancedController(vehicle, opt_dict)
         self.features = {}
@@ -32,8 +39,12 @@ class OtherSimplexAgent(Agent):
         self.max_waypoints = 200 
 
         self.radius = self.target_speed / 50 
-        self.min_dist = 0.9 * self.radius 
+        self.min_dist = 3.0 * self.radius 
         self.isBack2Center =True 
+        self.old_target_speed = self.target_speed
+        self.do_stop = False
+        self.has_stopped_timestep = 0
+        self.start_stop_timestep = 0
     def add_next_waypoints(self, waypoints, radius):
         if not waypoints:
             current_w = self._map.get_waypoint(self._vehicle.get_location())
@@ -50,8 +61,15 @@ class OtherSimplexAgent(Agent):
                 return
             waypoints.append(next_w)
 
-    def run_step(self):
+    def run_step(self, timestep):
         transform = self._vehicle.get_transform()
+        if len(self.stop_times) > 0:
+            if timestep == self.stop_times[0]: 
+                self.do_stop = True
+                self.start_stop_timestep = self.stop_times[0]
+                self.stop_times = self.stop_times[1:]
+            elif timestep > self.stop_times[0]:
+                self.stop_times = self.stop_times[1:]
 
         if self.waypoints:
             # If too far off course, reset waypoint queue.
@@ -97,6 +115,17 @@ class OtherSimplexAgent(Agent):
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc)
             #if self.isBack2Center:
             #    self.safe_waypoints = []
+        if self.do_stop:
+            if get_speed(self._vehicle) > 1 and timestep - self.start_stop_timestep < 100:
+                control.throttle = 0.0
+                control.brake = 0.7
+                self.target_speed = 0
+                self.has_stopped_timestep = timestep
+            elif timestep - self.has_stopped_timestep > self.stopping_time:
+                self.target_speed = self.old_target_speed
+                self.do_stop = False
+
+            
         return control 
 
     def get_features_and_return_dtc(self):

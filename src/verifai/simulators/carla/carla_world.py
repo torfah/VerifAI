@@ -201,7 +201,7 @@ class Vehicle(Entity):
         if self.ego:
             control = self.control_actor.run_step(self.world.iteration)
         else:
-            control = self.control_actor.run_step()
+            control = self.control_actor.run_step(self.world.timestep)
         return control
 
 

@@ -42,25 +42,34 @@ class overtake_control_task(carla_task):
         init_conds = sample.init_conditions
         self.ego_target_speed = init_conds.ego_target_speed[0]
         other_target_speed = init_conds.other_target_speed[0]
+        middle_point = init_conds.middle_point[0]
+        target_dist = init_conds.target_dist[0]
+        initial_dist = init_conds.initial_dist[0]
+        spawn_point = init_conds.spawn_point[0]
+        stop_time = init_conds.other_stop_time[0]
+        other_num_stops = init_conds.other_num_stops[0]
         # PID controller parameters
         ego_opt_dict = {
             'target_speed': self.ego_target_speed,
+            'target_dist': target_dist,
             'adaptive_cruise_enable': True
         }
         other_opt_dict = {
             'target_speed': other_target_speed,
-            'adaptive_cruise_enable': False
+            'adaptive_cruise_enable': False, 
+            'stop_time': stop_time, 
+            'other_num_stops': other_num_stops
         }
 
         # Deterministic blueprint, spawnpoint.
         other_blueprint = 'vehicle.audi.a2'
         spawn_points = self.world.map.get_spawn_points()
-        other_spawn = spawn_points[5]
+        other_spawn = spawn_points[int(spawn_point)]
         other_location = other_spawn.location 
         other_heading = other_spawn.get_forward_vector()
 
         ego_blueprint = 'vehicle.audi.a2'
-        ego_location = other_location - init_conds.initial_dist[0] * other_heading 
+        ego_location = other_location - initial_dist * other_heading 
         ego_spawn = carla.Transform(ego_location, other_spawn.rotation)
 
         self.ego_vehicle = self.world.add_vehicle(SimplexAgent,
@@ -78,7 +87,7 @@ class overtake_control_task(carla_task):
                                                     has_collision_sensor=False,
                                                     has_lane_sensor=False,
                                                     ego=False)
-        middle_location = spawn_points[len(spawn_points)//int(init_conds.middle_point[0])].location
+        middle_location = spawn_points[len(spawn_points)//int(middle_point)].location
         ego_resolution = self.ego_target_speed / 50 
         other_resolution = other_target_speed / 50
         self.world.generate_waypoints(ego_location, other_location, middle_location, ego_resolution, other_resolution)

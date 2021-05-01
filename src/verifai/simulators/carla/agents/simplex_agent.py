@@ -32,7 +32,7 @@ class SimplexAgent(Agent):
         self.max_waypoints = 200 
 
         self.radius = self.target_speed / 50 
-        self.min_dist = 0.9 * self.radius 
+        self.min_dist = 3.0 * self.radius 
         self.isBack2Center =True 
         self.timestamp = 0
         self.buffer=[]

@@ -13,6 +13,7 @@ class PIDadvancedController():
         # Default params:
         self.target_speed = 20.0
         self.prev_target_speed = self.target_speed
+        self.target_dist = 15
         self.adaptive_cruise_enable = False  # Can be overriden with opt dict
         # Default PID params:
         self.lateral_pid_dict = {
@@ -38,6 +39,8 @@ class PIDadvancedController():
                 self.longitudinal_pid_dict = opt_dict['longitudinal_pid_dict']
             if 'adaptive_cruise_enable' in opt_dict:
                 self.adaptive_cruise_enable = opt_dict['adaptive_cruise_enable']
+            if 'target_dist' in opt_dict:
+                self.target_dist = opt_dict['target_dist']
         self.controller = VehiclePIDController(vehicle,
                                               args_lateral=self.lateral_pid_dict,
                                               args_longitudinal=self.longitudinal_pid_dict)
@@ -51,7 +54,7 @@ class PIDadvancedController():
         elif yaw_diff8 > thresh: 
             coef = random.uniform(0.7,0.9)
         if self.adaptive_cruise_enable:
-            speed = self.cruise_controller.run_step(target_dist=15, target_speed=self.target_speed,
+            speed = self.cruise_controller.run_step(target_dist=self.target_dist, target_speed=self.target_speed,
                                                 prev_setpoint=self.prev_target_speed, debug=False)
         else:
             speed = self.target_speed * coef
