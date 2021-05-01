@@ -52,7 +52,7 @@ class PIDadvancedController():
             coef = random.uniform(0.7,0.9)
         if self.adaptive_cruise_enable:
             speed = self.cruise_controller.run_step(target_dist=15, target_speed=self.target_speed,
-                                                prev_setpoint=self.prev_target_speed, debug=True)
+                                                prev_setpoint=self.prev_target_speed, debug=False)
         else:
             speed = self.target_speed * coef
         self.prev_target_speed = speed

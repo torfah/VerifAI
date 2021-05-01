@@ -29,9 +29,9 @@ class SimplexAgent(Agent):
 
         self.waypoints = []
         self.safe_waypoints = []
-        self.max_waypoints = 15 
+        self.max_waypoints = 200 
 
-        self.radius = self.target_speed / 18  
+        self.radius = self.target_speed / 50 
         self.min_dist = 0.9 * self.radius 
         self.isBack2Center =True 
         self.timestamp = 0
@@ -73,7 +73,7 @@ class SimplexAgent(Agent):
                 self.waypoints = []
 
         # Get more waypoints.
-        if len(self.waypoints) < self.max_waypoints:
+        if len(self.waypoints) < self.max_waypoints //2:
             self.add_next_waypoints(self.waypoints, self.radius)
 
         # If no more waypoints, stop.
@@ -90,7 +90,7 @@ class SimplexAgent(Agent):
 
         # Draw next waypoint
         draw_waypoints(self._vehicle.get_world(),
-                           self.waypoints[:],
+                           self.waypoints[:1],
                            self._vehicle.get_location().z + 1.0)
 
         dtc = self.get_features_and_return_dtc()
