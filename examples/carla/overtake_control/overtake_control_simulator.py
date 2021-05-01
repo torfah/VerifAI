@@ -72,7 +72,7 @@ class overtake_control_task(carla_task):
         ego_waypoint = vehicle_waypoint.previous(int(initial_dist))[0]
 
         ego_blueprint = 'vehicle.audi.a2'
-        ego_location = ego_waypoint.transform.location
+        ego_location = ego_waypoint.transform.location + carla.Location(0, 0, 2)
         ego_rotation = ego_waypoint.transform.rotation
         ego_spawn = carla.Transform(ego_location, ego_rotation)
 

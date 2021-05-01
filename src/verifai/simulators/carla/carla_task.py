@@ -62,6 +62,8 @@ class carla_task():
                 self.world.timestep = self.timestep
                 self.step_world()
                 self.timestep += 1
+                if len(self.ego_vehicle.collision_sensor.get_collision_speeds()) > 0:
+                    break
             traj = self.trajectory_definition()
         finally:
             self.world.destroy()

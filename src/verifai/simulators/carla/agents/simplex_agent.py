@@ -55,15 +55,12 @@ class SimplexAgent(Agent):
             waypoints.append(next_w)
 
     def _write_features(self, iteration):
-        s = str()
-        for key in self.features:
-            s+=f'{key} {self.features[key]} '
-        s+='\n'
-        self.buffer.append([s])
-        if len(self.buffer) >= N_SIM_STEP:
-            with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
-                for s in self.buffer:
-                    f.write(f'{s[0]}')
+        with open(f'{SIM_DIR}/{iteration}.log', 'a') as f:
+            s = str()
+            for key in self.features:
+                s+=f'{key} {self.features[key]} '
+            s+='\n'
+            f.write(s)
     def run_step(self, iteration):
         transform = self._vehicle.get_transform()
 
