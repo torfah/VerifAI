@@ -233,10 +233,25 @@ def create_monitor_wrapper(dt_import_path, feature_names):
     code_file.write(indent + indent + 'if fname.endswith("joblib"):\n')
     code_file.write(indent + indent + indent + 'dts.append(load(f"./examples/carla/overtake_control/simpath/dt/{fname}"))\n')
 
-    code_file.write(indent + "for dt in dts:\n")
-    code_file.write(indent + indent + "verdict = dt.predict(X)[0]\n")
-    code_file.write(indent + indent + "if verdict == 0: return 0\n")
-    code_file.write(indent + "return 1\n")
+    code_file.write(indent + "a = 0.1\n")
+    code_file.write(indent + "v_sum = 0\n")
+    code_file.write(indent + "for i in range(len(dts)):\n")
+    code_file.write(indent + indent + "verdict = dts[i].predict(X)[0]\n")
+    code_file.write(indent + indent + "v_sum += ( a**(float(i!=0)) )* ( (1-a)**(len(dts)-1-i) ) * float(verdict)\n")
+
+    code_file.write(indent + "if v_sum >= 0.5:\n")
+    code_file.write(indent + indent + "return 1\n")
+    code_file.write(indent + "else:\n")
+    code_file.write(indent + indent + "return 0\n")
+#    code_file.write(indent + "v_sum = 0\n")
+#    code_file.write(indent + "for dt in dts:\n")
+#    code_file.write(indent + indent + "verdict = dt.predict(X)[0]\n")
+#    code_file.write(indent + indent + "if verdict:\n")
+#    code_file.write(indent + indent + indent + "v_sum += 1.0/len(dts)\n")
+#    code_file.write(indent + "if v_sum >= 0.5:\n")
+#    code_file.write(indent + indent + "return 1\n")
+#    code_file.write(indent + "else:\n")
+#    code_file.write(indent + indent + "return 0\n")
 
     #
     # # reload dt
@@ -371,8 +386,8 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
 
 
 # DEBUGGING
-columns = ['v', 'other_heading', 'other_distance' ,'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc', 'safe']
-training_columns = ['v', 'other_heading', 'other_distance', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc']
+columns = ['v', 'other_heading', 'other_distance', 'waypoint_15_dtc', 'waypoint_12_dtc', 'waypoint_9_dtc', 'waypoint_6_dtc', 'waypoint_3_dtc', 'waypoint_0_dtc', 'safe']
+training_columns = ['v', 'other_heading', 'other_distance', 'waypoint_15_dtc', 'waypoint_12_dtc', 'waypoint_9_dtc', 'waypoint_6_dtc', 'waypoint_3_dtc', 'waypoint_0_dtc']
 data_dir = SIM_DIR
 
 def condition(df, start, end):

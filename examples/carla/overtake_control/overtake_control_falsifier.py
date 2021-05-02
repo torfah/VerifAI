@@ -8,7 +8,7 @@ os.system(f'rm {SIM_DIR}/*.log')
 #pandas.set_option("display.max_rows", None, "display.max_columns", None)
 init_conditions = Struct({
     'ego_target_speed': Box([65.0, 80.0]),
-    'other_target_speed': Box([30.0, 40.0]),
+    'other_target_speed': Box([65.0, 80.0]),
     'map': Categorical(*(m for m in ['Town01', 'Town02', 'Town07'])),
     'middle_point' : Box([2, 6]),
     'target_dist' : Box([2, 15]),

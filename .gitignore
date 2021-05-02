@@ -2,6 +2,7 @@
 *.snet
 *.swp
 simpath/
+dt/
 visualization.py
 # Webots temporary files
 .*.wbproj
