@@ -1,4 +1,5 @@
 import time
+import argparse
 import pandas as pd
 import numpy as np
 import os
@@ -174,9 +175,15 @@ def postprocess_data(data):
     data.drop(relabeling_col_names, axis=1, inplace=True)
     return data
 
-def create_monitor_wrapper(dt_import_path, feature_names):
-    print(dt_import_path)
-    code_file = open(f"{dt_import_path}/monitor.py", "w")
+def create_monitor_wrapper(dt_import_path, feature_names, model_prefix):
+    # sanity checks
+    assert model_prefix in ("ego", "other"), "Monitor needs model for 'ego' and 'other' car."
+    if not any("other" in e for e in feature_names):
+        print("Warning: Did not find any feature name containing 'other' for ego monitor. Is it intended?")
+
+
+    print(f"Create monitor file at {dt_import_path}/monitor_{model_prefix}.py")
+    code_file = open(f"{dt_import_path}/monitor_{model_prefix}.py", "w")
 
     indent = "    "
     # imports
@@ -228,30 +235,19 @@ def create_monitor_wrapper(dt_import_path, feature_names):
     code_file.write(indent + "X = np.expand_dims(X, axis=0)\n")
 
     code_file.write(indent + "dts = []\n")
-    code_file.write(indent + 'prev_tree_files = os.listdir(f"./examples/carla/overtake_control/simpath/dt")\n')
+    code_file.write(indent + f'prev_tree_files = os.listdir(f"./examples/carla/overtake_control/monitor/dt_{model_prefix}")\n')
     code_file.write(indent + "for fname in prev_tree_files:  # tree_0.joblib\n")
     code_file.write(indent + indent + 'if fname.endswith("joblib"):\n')
-    code_file.write(indent + indent + indent + 'dts.append(load(f"./examples/carla/overtake_control/simpath/dt/{fname}"))\n')
+    code_file.write(indent + indent + indent + f'dts.append(load(f"./examples/carla/overtake_control/monitor/dt_{model_prefix}/{{fname}}"))\n')
 
-    code_file.write(indent + "a = 0.1\n")
-    code_file.write(indent + "v_sum = 0\n")
-    code_file.write(indent + "for i in range(len(dts)):\n")
-    code_file.write(indent + indent + "verdict = dts[i].predict(X)[0]\n")
-    code_file.write(indent + indent + "v_sum += ( a**(float(i!=0)) )* ( (1-a)**(len(dts)-1-i) ) * float(verdict)\n")
+    code_file.write(indent + "# if no tree is found, use AC\n")
+    code_file.write(indent + "if not dts: return 1\n")
+    code_file.write("\n")
 
-    code_file.write(indent + "if v_sum >= 0.5:\n")
-    code_file.write(indent + indent + "return 1\n")
-    code_file.write(indent + "else:\n")
-    code_file.write(indent + indent + "return 0\n")
-#    code_file.write(indent + "v_sum = 0\n")
-#    code_file.write(indent + "for dt in dts:\n")
-#    code_file.write(indent + indent + "verdict = dt.predict(X)[0]\n")
-#    code_file.write(indent + indent + "if verdict:\n")
-#    code_file.write(indent + indent + indent + "v_sum += 1.0/len(dts)\n")
-#    code_file.write(indent + "if v_sum >= 0.5:\n")
-#    code_file.write(indent + indent + "return 1\n")
-#    code_file.write(indent + "else:\n")
-#    code_file.write(indent + indent + "return 0\n")
+    code_file.write(indent + "for dt in dts:\n")
+    code_file.write(indent + indent + "verdict = dt.predict(X)[0]\n")
+    code_file.write(indent + indent + "if verdict == 0: return 0\n")
+    code_file.write(indent + "return 1\n")
 
     #
     # # reload dt
@@ -347,7 +343,7 @@ def generate(data_dir, column_names, training_column_names, condition, input_win
 
     create_monitor_wrapper(data_dir)
 
-def generate_from_scratch(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2):
+def generate_from_scratch(data_dir, column_names, training_column_names, condition, input_window=2, horizon=2, decision_window=2, model_prefix="ego"):
         # Iterate over all simulation files
         if os.path.exists(f'{data_dir}/falsifier.csv'):
             print(f"Generating error tables from falsifier.csv...")
@@ -378,17 +374,24 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
                         training_data_list[i].to_csv(f"{data_dir}/training_data/training_data_{i}.csv",index=False,header=False)
         os.system(f"cat {data_dir}/training_data/*csv > {data_dir}/training_data/training_data.csv")
 
-        print("Generating DT: -> ")
 
-        learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, True ,False, data_dir)
+        # TODO: generate dt for ego or other
+        print(f"Generating DT: {model_prefix} -> ")
 
-        create_monitor_wrapper(data_dir, feature_names)
+        learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, True ,False, OUTPUT_MONITOR_DIR, model_prefix)
+
+        create_monitor_wrapper(OUTPUT_MONITOR_DIR, feature_names, model_prefix)
 
 
 # DEBUGGING
+
 columns = ['v', 'other_heading', 'other_distance', 'waypoint_15_dtc', 'waypoint_12_dtc', 'waypoint_9_dtc', 'waypoint_6_dtc', 'waypoint_3_dtc', 'waypoint_0_dtc', 'safe']
 training_columns = ['v', 'other_heading', 'other_distance', 'waypoint_15_dtc', 'waypoint_12_dtc', 'waypoint_9_dtc', 'waypoint_6_dtc', 'waypoint_3_dtc', 'waypoint_0_dtc']
 data_dir = SIM_DIR
+
+# columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc', 'safe']
+# training_columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc']
+# data_dir = SIM_DIR
 
 def condition(df, start, end):
     """
@@ -402,6 +405,13 @@ def condition(df, start, end):
             return False
     return True
 
-# Generate DT from latest run
-generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
-#generate(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Generate Monitor File.')
+    parser.add_argument("prefix", help="The agent the monitor controls. Must be ego or other.")
+    args = parser.parse_args()
+
+
+    # Generate DT from latest run
+    generate_from_scratch(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20, model_prefix=args.prefix)
+    #generate(data_dir,columns,training_columns, condition,INPUT_WINDOW,5,20)

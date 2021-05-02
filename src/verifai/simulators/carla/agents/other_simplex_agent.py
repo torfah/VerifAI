@@ -8,7 +8,7 @@ from verifai.simulators.carla.agents.pid_safe_controller import *
 import numpy as np
 import sys
 from examples.carla.overtake_control.config import *
-import examples.carla.overtake_control.monitor.monitor as simplex_monitor
+import examples.carla.overtake_control.monitor.monitor_other as simplex_monitor
 import random
 '''Agent that follows road waypoints (prioritizing a straight
 trajectory if multiple options available) using longitudinal

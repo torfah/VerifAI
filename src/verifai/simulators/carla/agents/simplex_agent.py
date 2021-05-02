@@ -8,7 +8,7 @@ from verifai.simulators.carla.agents.pid_safe_controller import *
 import numpy as np
 import sys
 from examples.carla.overtake_control.config import *
-import examples.carla.overtake_control.simpath.monitor as simplex_monitor
+import examples.carla.overtake_control.monitor.monitor_ego as simplex_monitor
 '''Agent that follows road waypoints (prioritizing a straight
 trajectory if multiple options available) using longitudinal
 and lateral PID.'''
@@ -92,7 +92,7 @@ class SimplexAgent(Agent):
 
         other_rdis, other_rheading = self.get_other_car_info()
         dtc = self.get_features_and_return_dtc(other_rdis, other_rheading)
-        do_AC = True#simplex_monitor.check(self.features, INPUT_WINDOW, False) 
+        do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False) 
         if do_AC and self.isBack2Center:
             v_yaw = self._vehicle.get_transform().rotation.yaw
             yaw_diff8 = d_angle(self.waypoints[8].transform.rotation.yaw, v_yaw)

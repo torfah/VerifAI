@@ -35,10 +35,14 @@ def check(input_map, input_window, reload_dt):
     X = np.array(X)
     X = np.expand_dims(X, axis=0)
     dts = []
-    prev_tree_files = os.listdir(f"./examples/carla/overtake_control/monitor/dt")
+    prev_tree_files = os.listdir(f"./examples/carla/overtake_control/monitor/dt_other")
     for fname in prev_tree_files:  # tree_0.joblib
         if fname.endswith("joblib"):
-            dts.append(load(f"./examples/carla/overtake_control/monitor/dt/{fname}"))
+            dts.append(load(f"./examples/carla/overtake_control/monitor/dt_other/{fname}"))
+
+    # if no tree is found, use AC
+    if not dts: return 1
+
     a = 0.1
     v_sum = 0
     for i in range(len(dts)):

@@ -32,7 +32,10 @@ def tree_to_code(tree, feature_names, file_name, out_dir="."):
     recurse(0, 1)
     code_file.close()
 
-def learn_dt(csv_file_path, label, features_names, append_mode=True, visualization=False,out_dir="."):
+def learn_dt(csv_file_path, label, features_names, append_mode=True, visualization=False,out_dir=".", model_prefix="ego"):
+    # directory check
+    print(f"DT will be saved at: {out_dir}/dt_{model_prefix}")
+
     data = pd.read_csv(csv_file_path)   
 
     X = data[features_names]
@@ -44,12 +47,12 @@ def learn_dt(csv_file_path, label, features_names, append_mode=True, visualizati
     # Export tree
     new_tree_fname = "dt"
     if append_mode:
-        os.system(f"mkdir -p {out_dir}/dt")
+        os.system(f"mkdir -p {out_dir}/dt_{model_prefix}")
 
         # Get the correct filename
         max_iter = -1
 
-        prev_tree_files = os.listdir(f"{out_dir}/dt")
+        prev_tree_files = os.listdir(f"{out_dir}/dt_{model_prefix}")
         for f in prev_tree_files: # tree_0.joblib
             if f.endswith("joblib"):
                 iteration = f.split(".")[0].split("_")[1]
@@ -57,21 +60,21 @@ def learn_dt(csv_file_path, label, features_names, append_mode=True, visualizati
         new_tree_fname = f'tree_{max_iter + 1}'
 
     else: # replace old trees
-        os.system(f"rm -r {out_dir}/dt")
-        os.system(f"mkdir {out_dir}/dt")
+        os.system(f"rm -r {out_dir}/dt_{model_prefix}")
+        os.system(f"mkdir {out_dir}/dt_{model_prefix}")
 
 
     ## Visualization 
     if visualization == True:
         dot_data = tree.export_graphviz(dt, out_file=None, feature_names=features_names, class_names=["0","1"], filled=True)
         graph = graphviz.Source(dot_data)
-        graph.render(f"{out_dir}/dt/{file_name}")
-        os.system(f"dot -Tpng {out_dir}/dt/{file_name} -o {out_dir}/dt/{file_name}.png")
+        graph.render(f"{out_dir}/dt_{model_prefix}/{file_name}")
+        os.system(f"dot -Tpng {out_dir}/dt_{model_prefix}/{file_name} -o {out_dir}/dt_{model_prefix}/{file_name}.png")
    
     ## Executable Code
     # tree_to_code(dt,features_names, new_tree_fname, f"{out_dir}/dt")
-    print(f"{out_dir}/dt/{new_tree_fname}.joblib")
-    dump(dt, f"{out_dir}/dt/{new_tree_fname}.joblib")
+    print(f"{out_dir}/dt_{model_prefix}/{new_tree_fname}.joblib")
+    dump(dt, f"{out_dir}/dt_{model_prefix}/{new_tree_fname}.joblib")
 
     return dt
 
