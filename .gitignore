@@ -3,6 +3,7 @@
 *.swp
 simpath/
 dt/
+dt_ego/
 visualization.py
 # Webots temporary files
 .*.wbproj

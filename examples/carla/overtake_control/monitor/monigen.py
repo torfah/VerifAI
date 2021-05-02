@@ -244,20 +244,16 @@ def create_monitor_wrapper(dt_import_path, feature_names, model_prefix):
     code_file.write(indent + "if not dts: return 1\n")
     code_file.write("\n")
 
-    code_file.write(indent + "for dt in dts:\n")
-    code_file.write(indent + indent + "verdict = dt.predict(X)[0]\n")
-    code_file.write(indent + indent + "if verdict == 0: return 0\n")
-    code_file.write(indent + "return 1\n")
+    code_file.write(indent + "a = 0.1\n")
+    code_file.write(indent + "v_sum = 0\n")
+    code_file.write(indent + "for i in range(len(dts)):\n")
+    code_file.write(indent + indent + "verdict = dts[i].predict(X)[0]\n")
+    code_file.write(indent + indent + "v_sum += ( a**(float(i!=0)) )* ( (1-a)**(len(dts)-1-i) ) * float(verdict)\n")
 
-    #
-    # # reload dt
-    # code_file.write(indent + "# import decision tree\n")
-    # code_file.write(indent + "if reload_dt:\n")
-    # code_file.write(indent + indent + "importlib.reload(dt)\n\n")
-
-    # compute and return verdict
-    # code_file.write(indent + "verdict = dt.execute(dt_map)\n")
-    # code_file.write(indent + "return verdict")
+    code_file.write(indent + "if v_sum >= 0.5:\n")
+    code_file.write(indent + indent + "return 1\n")
+    code_file.write(indent + "else:\n")
+    code_file.write(indent + indent + "return 0\n")
 
     code_file.close()
 
