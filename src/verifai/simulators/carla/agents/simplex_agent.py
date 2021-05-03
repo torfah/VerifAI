@@ -118,7 +118,7 @@ class SimplexAgent(Agent):
             self.features['other_distance'] = other_rdis
 
         dtc = 0
-        for i in range(15, -1, -3):
+        for i in range(25, -1, -5):
             waypoint = self.waypoints[i]
             w_yaw = waypoint.transform.rotation.yaw 
 

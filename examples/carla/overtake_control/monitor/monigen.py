@@ -386,8 +386,8 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
 
 # DEBUGGING
 
-columns = ['v', 'other_heading', 'other_distance', 'waypoint_15_dtc', 'waypoint_12_dtc', 'waypoint_9_dtc', 'waypoint_6_dtc', 'waypoint_3_dtc', 'waypoint_0_dtc', 'safe']
-training_columns = ['v', 'other_heading', 'other_distance', 'waypoint_15_dtc', 'waypoint_12_dtc', 'waypoint_9_dtc', 'waypoint_6_dtc', 'waypoint_3_dtc', 'waypoint_0_dtc']
+columns = ['v', 'other_heading', 'other_distance', 'waypoint_25_dtc', 'waypoint_20_dtc', 'waypoint_15_dtc', 'waypoint_10_dtc', 'waypoint_5_dtc', 'waypoint_0_dtc', 'safe']
+training_columns = ['v', 'other_heading', 'other_distance', 'waypoint_25_dtc', 'waypoint_20_dtc', 'waypoint_15_dtc', 'waypoint_10_dtc', 'waypoint_5_dtc', 'waypoint_0_dtc']
 data_dir = SIM_DIR
 
 # columns = ['v', 'waypoint_5_dtc', 'waypoint_4_dtc', 'waypoint_3_dtc', 'waypoint_2_dtc', 'waypoint_1_dtc', 'waypoint_0_dtc', 'safe']
