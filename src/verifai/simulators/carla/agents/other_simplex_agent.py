@@ -128,7 +128,7 @@ class OtherSimplexAgent(Agent):
         #self.features['acc'] = get_scalar(self._vehicle.get_acceleration())
         #self.features['ang_v'] = get_scalar(self._vehicle.get_angular_velocity())
         dtc = 0
-        for i in range(15, -1, -3):
+        for i in range(25, -1, -5):
             waypoint = self.waypoints[i]
             w_yaw = waypoint.transform.rotation.yaw 
 
