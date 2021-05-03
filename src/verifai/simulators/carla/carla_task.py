@@ -64,7 +64,7 @@ class carla_task():
                 self.timestep += 1
 
                 # end episode on collision
-                if len(self.ego_vehicle.collision_sensor.get_collision_speeds()) > 0:
+                if len(self.ego_vehicle.collision_sensor.get_collision_speeds()) > 100:
                     break
             traj = self.trajectory_definition()
         finally:

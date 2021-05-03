@@ -8,11 +8,11 @@ os.system(f'rm {SIM_DIR}/*.log')
 #pandas.set_option("display.max_rows", None, "display.max_columns", None)
 init_conditions = Struct({
     'ego_target_speed': Box([65.0, 80.0]),
-    'other_target_speed': Box([65.0, 80.0]),
+    'other_target_speed': Box([50.0, 65.0]),
     'map': Categorical(*(m for m in ['Town01', 'Town02', 'Town07'])),
     'middle_point' : Box([2, 6]),
-    'target_dist' : Box([2, 15]),
-    'initial_dist': Box([10.0, 20.0]),
+    'target_dist' : Box([2, 5]),
+    'initial_dist': Box([30.0, 60.0]),
     'spawn_point': Box([2, 6]), 
     'other_stop_time': Box([30.0, 100.0]), 
     'other_num_stops': Box([1, 10])
@@ -21,7 +21,6 @@ init_conditions = Struct({
 sample_space = {'init_conditions': init_conditions}
 
 SAMPLERTYPE = 'ce'
-MAX_ITERS = 3
 MAXREQS = 5
 
 specification = ['~(laneinvade | egocollision)']

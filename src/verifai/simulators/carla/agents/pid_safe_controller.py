@@ -55,14 +55,14 @@ class PIDsafeController():
                 isBack2Center = True
                 self.target_speed = self.old_target_speed 
 
-        # TODO: brake if there is a car in front
+        # brake if there is a car in front
 
         if (other_rdis is not None):
             #print(f"--> dis:{other_rdis} heading:{other_rheading}")
-            if (other_rdis <= 5) and (-45<=other_rheading<=45):
+            if (other_rdis <= 14): # and (-45<=other_rheading<=45):
                 print(f"SC: Emergency Break: dis:{other_rdis} heading:{other_rheading}")
                 control.throttle = 0.0
-                control.brake = 0.8
+                control.brake = 1.0
 
 
         return control, isBack2Center

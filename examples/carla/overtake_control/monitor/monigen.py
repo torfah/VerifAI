@@ -235,7 +235,8 @@ def create_monitor_wrapper(dt_import_path, feature_names, model_prefix):
     code_file.write(indent + "X = np.expand_dims(X, axis=0)\n")
 
     code_file.write(indent + "dts = []\n")
-    code_file.write(indent + f'prev_tree_files = os.listdir(f"./examples/carla/overtake_control/monitor/dt_{model_prefix}")\n')
+    code_file.write(indent + f"if not os.path.isdir('./examples/carla/overtake_control/monitor/dt_{model_prefix}'): return 1\n")
+    code_file.write(indent + f'prev_tree_files = os.listdir("./examples/carla/overtake_control/monitor/dt_{model_prefix}")\n')
     code_file.write(indent + "for fname in prev_tree_files:  # tree_0.joblib\n")
     code_file.write(indent + indent + 'if fname.endswith("joblib"):\n')
     code_file.write(indent + indent + indent + f'dts.append(load(f"./examples/carla/overtake_control/monitor/dt_{model_prefix}/{{fname}}"))\n')

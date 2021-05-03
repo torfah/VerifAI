@@ -35,7 +35,8 @@ def check(input_map, input_window, reload_dt):
     X = np.array(X)
     X = np.expand_dims(X, axis=0)
     dts = []
-    prev_tree_files = os.listdir(f"./examples/carla/overtake_control/monitor/dt_ego")
+    if not os.path.isdir('./examples/carla/overtake_control/monitor/dt_ego'): return 1
+    prev_tree_files = os.listdir("./examples/carla/overtake_control/monitor/dt_ego")
     for fname in prev_tree_files:  # tree_0.joblib
         if fname.endswith("joblib"):
             dts.append(load(f"./examples/carla/overtake_control/monitor/dt_ego/{fname}"))
