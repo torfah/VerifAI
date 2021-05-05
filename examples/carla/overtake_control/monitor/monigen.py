@@ -179,7 +179,7 @@ def create_monitor_wrapper(dt_import_path, feature_names, model_prefix):
     # sanity checks
     assert model_prefix in ("ego", "other"), "Monitor needs model for 'ego' and 'other' car."
     if not any("other" in e for e in feature_names):
-        print("Warning: Did not find any feature name containing 'other' for ego monitor. Is it intended?")
+        print("Warning: Did not find any feature names containing 'other' for ego monitor. Is it intended?")
 
 
     print(f"Create monitor file at {dt_import_path}/monitor_{model_prefix}.py")
@@ -210,7 +210,7 @@ def create_monitor_wrapper(dt_import_path, feature_names, model_prefix):
     code_file.write(indent + "if window_fill_size < input_window:\n")
     code_file.write(indent + indent + "# expand window_data with input_map\n")
     code_file.write(indent + indent + "window_data.append(input_map)\n")
-    code_file.write(indent + indent + "return True\n\n")
+    code_file.write(indent + indent + "return 1\n\n")
 
     # Implement FIFO
     code_file.write(indent + "# FIFO behavior: Buffer of size input_window\n")
@@ -376,7 +376,7 @@ def generate_from_scratch(data_dir, column_names, training_column_names, conditi
         os.system(f"cat {data_dir}/training_data/*csv > {data_dir}/training_data/training_data.csv")
 
 
-        # TODO: generate dt for ego or other
+        # generate dt for ego or other
         print(f"Generating DT: {model_prefix} -> ")
 
         learn_dt(f"{data_dir}/training_data/training_data.csv", class_names, feature_names, True ,False, OUTPUT_MONITOR_DIR, model_prefix)

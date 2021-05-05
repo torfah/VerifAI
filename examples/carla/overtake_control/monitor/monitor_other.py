@@ -12,7 +12,7 @@ def check(input_map, input_window, reload_dt):
     if window_fill_size < input_window:
         # expand window_data with input_map
         window_data.append(input_map)
-        return True
+        return 1
 
     # FIFO behavior: Buffer of size input_window
     window_data.pop(0)

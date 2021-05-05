@@ -19,23 +19,25 @@ class SimplexAgent(Agent):
     def __init__(self, vehicle, opt_dict=None):
         super(SimplexAgent, self).__init__(vehicle)
         safe_speed = 10.0
+        self.ignore_sc = True
         if opt_dict:
             if 'target_speed' in opt_dict:
                 self.target_speed = opt_dict['target_speed']
+            if 'ignore_sc' in opt_dict:
+                self.ignore_sc = opt_dict['ignore_sc']
+
         self.safe_controller = PIDsafeController(vehicle, safe_speed, opt_dict)
         self.advanced_controller = PIDadvancedController(vehicle, opt_dict)
         self.features = {}
         self.opt_dict = opt_dict
 
         self.waypoints = []
-        self.safe_waypoints = []
         self.max_waypoints = 200 
 
         self.radius = self.target_speed / 50 
         self.min_dist = 3.0 * self.radius 
         self.isBack2Center =True 
         self.timestamp = 0
-        self.buffer=[]
     def add_next_waypoints(self, waypoints, radius):
 
         if not waypoints:
@@ -92,17 +94,28 @@ class SimplexAgent(Agent):
 
         other_rdis, other_rheading = self.get_other_car_info()
         dtc = self.get_features_and_return_dtc(other_rdis, other_rheading)
-        do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False) 
-        if do_AC and self.isBack2Center:
+        do_AC = simplex_monitor.check(self.features, INPUT_WINDOW, False)
+        # log DM result
+        self.features['DM_output'] = do_AC
+
+        print ("do_AC", do_AC)
+        if self.ignore_sc or (do_AC and self.isBack2Center):
             v_yaw = self._vehicle.get_transform().rotation.yaw
-            yaw_diff8 = d_angle(self.waypoints[8].transform.rotation.yaw, v_yaw)
-            yaw_diff0 = d_angle(self.waypoints[0].transform.rotation.yaw, v_yaw)
+            yaw_diff8 = d_angle(self.waypoints[30].transform.rotation.yaw, v_yaw)
+            yaw_diff0 = d_angle(self.waypoints[10].transform.rotation.yaw, v_yaw)
             
             control = self.advanced_controller.run_step(self.waypoints[0], yaw_diff0, yaw_diff8)
+            # log AC
+            self.features['controller'] = 1
+
         else:
             control, self.isBack2Center = self.safe_controller.run_step(self.waypoints[0], dtc, other_rdis, other_rheading)
-
             print ("do_SC", dtc)
+
+            # log SC
+            self.features['controller'] = 0
+
+
         self._write_features(iteration)
         self.timestamp += 1
         return control 
