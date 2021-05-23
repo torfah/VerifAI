@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pickle
 import os
 
 input_window = 5
@@ -7,13 +8,14 @@ decision_window = 2
 horizon = 2
 sample_rate = 1
 
-output_file = "training_data"
+# output_file = "training_data"
 
-log = open(f"{output_file}.csv", "w")
-log.write("sample, input_window, prediction\n")
+# log = open(f"{output_file}.csv", "w")
+# log.write("sample, input_window, prediction\n")
 
 sample_count = 0
 valid_samples = 0
+train_data = []
 for file in os.listdir('./simulation_data'):
 	if file.endswith('.csv'):
 		filename = './simulation_data/' + file
@@ -55,12 +57,16 @@ for file in os.listdir('./simulation_data'):
 			for j in range(i, i + input_window):
 				concat_data.append((tod, clouds, rain, init_h, init_ct, lat[j], lon[j], cte[j], he[j], dist[j]))
 			ind = i+horizon+input_window
-			# write this into a function
+			# TODO: write this into a function
 			prediction = all([c < 2 for c in cte[ind:ind+decision_window]])
+			train_data.append((concat_data, prediction))
 			valid_samples += int(prediction)
-			log.write(f"{sample_count}, {concat_data}, {prediction}\n")
+			# log.write(f"{sample_count}, {concat_data}, {prediction}\n")
 			sample_count += 1
 
-log.close()
+# log.close()
+with open('training_data.pkl', 'wb') as f:
+	pickle.dump(train_data, f)
+
 
 print(valid_samples)
