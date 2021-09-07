@@ -46,8 +46,10 @@ fuel_dref = "sim/flightmodel/weight/m_fuel"
 class XPlaneServer(verifai.server.Server):
     simulation_count = 0
 
-    def __init__(self, sampling_data, monitor, options):
+    def __init__(self, sampling_data, monitor, options, data_dump):
         super().__init__(sampling_data, monitor, options)
+
+        self.folder_output = data_dump
 
         self.runway_heading = options.runway.heading
         self.rh_sin, self.rh_cos = math.sin(self.runway_heading), math.cos(self.runway_heading)
@@ -148,11 +150,9 @@ class XPlaneServer(verifai.server.Server):
         time.sleep(0.1)
         self.xpcserver.sendDREF("sim/flightmodel/controls/parkbrake", 0)
 
-        if self.simulation_count == 0:
-            os.system("rm -r simulation_data")
-        os.system("mkdir simulation_data")
-        log = open(f"simulation_data/log_{self.simulation_count}.csv", "w")
-        log.write("time, init_pos, init_heading, day_time, lat, lon, cte, he, clouds, rain, pos\n")
+        logger = {'time': [], 'init_position': [], 'init_heading': [],
+                  'time_of_day': [], 'lat': [], 'lon': [], 'cte': [], 'he': [],
+                  'clouds': [], 'rain': [], 'pos': [], 'groundspeed': []}
 
         # Execute a run
         if self.verbosity >= 1:
@@ -165,6 +165,7 @@ class XPlaneServer(verifai.server.Server):
             # Get current plane state
             # Use modified getPOSI to get lat/lon in double precision
             lat, lon, _, _, _, psi, _ = self.xpcserver.getPOSI()
+            groundspeed = self.xpcserver.getDREF('sim/flightmodel/position/groundspeed')
             lats.append(lat); lons.append(lon); psis.append(psi)
             # Compute cross-track and heading errors
             cte = cross_track_distance(start_lat, start_lon, end_lat, end_lon, lat, lon)
@@ -188,14 +189,24 @@ class XPlaneServer(verifai.server.Server):
 
             current = time.time()
 
-            log.write(f"{current}, {plane_x_sc}, {start_heading},\
-                {params['sim/time/zulu_time_sec']}, {lat}, {lon}, {cte}, {heading_err},\
-                {params['sim/weather/cloud_type[0]']}, {params['sim/weather/rain_percent']},\
-                {math.floor(travel_distance)}\n")
+            logger['time'].append(current)
+            logger['init_position'].append(plane_x_sc)
+            logger['init_heading'].append(start_heading)
+            logger['time_of_day'].append(params['sim/time/zulu_time_sec'])
+            logger['clouds'].append(params['sim/weather/cloud_type[0]'])
+            logger['rain'].append(params['sim/weather/rain_percent'])
+            logger['groundspeed'].append(groundspeed)
+            logger['heading'].append(psi)
+            logger['he'].append(heading_err)
+            logger['cte'].append(cte)
+            logger['lat'].append(lat)
+            logger['lon'].append(lon)
 
-        self.images = images
+        df = pd.DataFrame(logger)
+        df.to_pickle(f'{os.path.join(self.folder_output, 'traces', self.simulation_count)}.pkl')
+        with open(f'{os.path.join(self.folder_output, 'images', self.simulation_count)}.pkl') as f:
+            pickle.dump(images, f)
 
-        log.close()
         self.simulation_count += 1
 
         # Do some simple checks to see if the plane has gotten stuck
@@ -221,12 +232,13 @@ class XPlaneServer(verifai.server.Server):
 
 
 class XPlaneFalsifier(verifai.falsifier.mtl_falsifier):
-    def __init__(self, monitor, sampler_type=None, sampler=None, sample_space=None,
+    def __init__(self, monitor, data_ouptut, sampler_type=None, sampler=None, sample_space=None,
                  falsifier_params={}, server_options={}):
         super().__init__(monitor, sampler_type=sampler_type, sampler=sampler,
                          sample_space=sample_space,
                          falsifier_params=falsifier_params, server_options=server_options)
         self.verbosity = falsifier_params.get('verbosity', 0)
+        self.folder_output = data_ouptut
         video = falsifier_params.get('video')
         if video is not None:
             import utils.images       # will throw exception if required libraries not available
@@ -239,7 +251,7 @@ class XPlaneFalsifier(verifai.falsifier.mtl_falsifier):
         samplingConfig = DotMap(sampler=self.sampler,
                                 sampler_type=self.sampler_type,
                                 sample_space=self.sample_space)
-        self.server = XPlaneServer(samplingConfig, self.monitor, server_options)
+        self.server = XPlaneServer(samplingConfig, self.monitor, server_options, self.folder_output)
 
     def populate_error_table(self, sample, rho, error=True):
         super().populate_error_table(sample, rho, error)
@@ -255,7 +267,7 @@ class XPlaneFalsifier(verifai.falsifier.mtl_falsifier):
                                      fps=self.video_framerate)
 
 
-def run_test(configuration, runway, verbosity=0):
+def run_test(configuration, runway, dump, verbosity=0):
     # Load Scenic scenario
     print('Loading scenario...')
     sampler = verifai.ScenicSampler.fromScenario(configuration['scenario'])
@@ -289,7 +301,7 @@ def run_test(configuration, runway, verbosity=0):
         error_table_path=configuration['error_table'],
         safe_table_path=configuration['safe_table'],
     )
-    falsifier = XPlaneFalsifier(specification, sampler=sampler,
+    falsifier = XPlaneFalsifier(specification, dump, sampler=sampler,
                                 falsifier_params=falsifierOptions,
                                 server_options=serverOptions)
 
@@ -329,8 +341,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', help='experiment configuration file', default='config.yaml')
     parser.add_argument('-r', '--runway', help='runway configuration file', default='runway.yaml')
+    parser.add_argument('-d', '--dump', help='folder to dump data', default='./data')
     parser.add_argument('-v', '--verbosity', type=int, default=0)
     args = parser.parse_args()
+
+    if not os.path.isdir(args.dump):
+        os.makedirs(args.dump)
 
     # Parse runway configuration
     runway = load_yaml(args.runway)
@@ -348,4 +364,4 @@ if __name__ == '__main__':
     # Parse experiment configuration
     configuration = load_yaml(args.config)
 
-    run_test(configuration, runway_data, verbosity=args.verbosity)
+    run_test(configuration, runway_data, args.dump, verbosity=args.verbosity)
