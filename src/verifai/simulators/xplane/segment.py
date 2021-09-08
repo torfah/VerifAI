@@ -20,10 +20,15 @@ def segment_data():
             filename = os.path.splitext(file)[0]
             data = pd.read_pickle(file)
 
+            with open(os.path.join(args.dir, 'images')) as f:
+                images = pickle.load(f)
+
             items = []
             for col in data.columns:
                 if col != 'cte':
                     items.append([float(value) for _, value in data[col].items()])
+
+            items.append(images)
 
             ctes = [value for _, value in data['cte'].items()]
 
