@@ -152,7 +152,8 @@ class XPlaneServer(verifai.server.Server):
 
         logger = {'time': [], 'init_position': [], 'init_heading': [],
                   'time_of_day': [], 'lat': [], 'lon': [], 'cte': [], 'he': [],
-                  'clouds': [], 'rain': [], 'pos': [], 'groundspeed': []}
+                  'clouds': [], 'rain': [], 'groundspeed': [], 
+                  'heading': [], 'pred_cte': [], 'pred_he': []}
 
         # Execute a run
         if self.verbosity >= 1:
@@ -175,7 +176,7 @@ class XPlaneServer(verifai.server.Server):
             travel_distance = great_circle_distance_haversine(start_lat, start_lon, lat, lon)
             # Run controller for one step, if desired
             if self.controller is not None:
-                self.controller(self.xpcserver, lat, lon, psi, cte, heading_err)
+                pred_cte, pred_he = self.controller(self.xpcserver, lat, lon, psi, cte, heading_err)
             # Save screenshot for videos
             if self.grab_image is not None:
                 images.append(self.grab_image())
@@ -201,10 +202,14 @@ class XPlaneServer(verifai.server.Server):
             logger['cte'].append(cte)
             logger['lat'].append(lat)
             logger['lon'].append(lon)
+            logger['pred_cte'].append(pred_cte)
+            logger['pred_he'].append(pred_he)
 
         df = pd.DataFrame(logger)
-        df.to_pickle(f'{os.path.join(self.folder_output, 'traces', self.simulation_count)}.pkl')
-        with open(f'{os.path.join(self.folder_output, 'images', self.simulation_count)}.pkl') as f:
+        traces_path = os.path.join(os.path.join(self.folder_output, 'traces'), str(self.simulation_count))
+        images_path = os.path.join(os.path.join(self.folder_output, 'images'), str(self.simulation_count)) 
+        df.to_pickle(f'{traces_path}.pkl')
+        with open(f'{images_path}.pkl', 'wb') as f:
             pickle.dump(images, f)
 
         self.simulation_count += 1
@@ -232,13 +237,10 @@ class XPlaneServer(verifai.server.Server):
 
 
 class XPlaneFalsifier(verifai.falsifier.mtl_falsifier):
-    def __init__(self, monitor, data_ouptut, sampler_type=None, sampler=None, sample_space=None,
+    def __init__(self, monitor, data_output, sampler_type=None, sampler=None, sample_space=None,
                  falsifier_params={}, server_options={}):
-        super().__init__(monitor, sampler_type=sampler_type, sampler=sampler,
-                         sample_space=sample_space,
-                         falsifier_params=falsifier_params, server_options=server_options)
         self.verbosity = falsifier_params.get('verbosity', 0)
-        self.folder_output = data_ouptut
+        self.folder_output = data_output
         video = falsifier_params.get('video')
         if video is not None:
             import utils.images       # will throw exception if required libraries not available
@@ -246,7 +248,8 @@ class XPlaneFalsifier(verifai.falsifier.mtl_falsifier):
             self.video_framerate = video['framerate']
         else:
             self.video_threshold = None
-
+        super().__init__(monitor, sampler_type=sampler_type, sampler=sampler, sample_space=sample_space, falsifier_params=falsifier_params, server_options=server_options)
+        
     def init_server(self, server_options):
         samplingConfig = DotMap(sampler=self.sampler,
                                 sampler_type=self.sampler_type,
@@ -347,6 +350,8 @@ if __name__ == '__main__':
 
     if not os.path.isdir(args.dump):
         os.makedirs(args.dump)
+        os.makedirs(os.path.join(args.dump, 'traces'))
+        os.makedirs(os.path.join(args.dump, 'images'))
 
     # Parse runway configuration
     runway = load_yaml(args.runway)
