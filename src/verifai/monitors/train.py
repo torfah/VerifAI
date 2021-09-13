@@ -1,36 +1,44 @@
 from dataloader import MonitorLearningDataset
 from net import Net
 
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
+import numpy as np
+
 import argparse
+import pickle
+import random
 
 
 window_size = 5
-characteristics = 10
+characteristics = 9
 learning_rate = 1e-4
 log_batch = 100
 
-batch_size = 5
+batch_size = 2
 n_workers = 8
+train_ratio = 0.8
 
 
 def train():
     model = Net(window_size, characteristics)
+    model = model.double()
     if gpu_exists:
         model = model.cuda()
 
-    traces_val = MonitorLearningDataset(args.val)
-    traces_train = MonitorLearningDataset(args.train)
-    validation_set = DatasetLoader(traces_val,
+    traces_train = MonitorLearningDataset(train_set)
+    traces_val = MonitorLearningDataset(val_set)
+    validation_set = DataLoader(traces_val,
                                    batch_size=batch_size,
                                    shuffle=True,
                                    num_workers=n_workers)
-    train_set = DatasetLoader(traces_train,
+    training_set = DataLoader(traces_train,
                               batch_size=batch_size,
                               shuffle=True,
                               num_workers=n_workers)
-    traces_dataset = { 'validation': validation_set, 'train': train_set }
+    traces_dataset = { 'validation': validation_set, 'train': training_set }
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.BCELoss()
@@ -39,7 +47,8 @@ def train():
     for epoch in range(args.epochs):
         for phase in ['train', 'validation']:
             cumu_loss = 0
-            print(f'{phase} at epoch no. {epoch}\n', '-' * 20)
+            break_line = '-' * 20
+            print(f'{break_line}\n{phase} at epoch no. {epoch + 1}\n{break_line}')
             for i, sample in enumerate(traces_dataset[phase]):
                 x, y = sample
 
@@ -61,10 +70,12 @@ def train():
                     loss.backward()
                     optimizer.step()
 
-                if i % log_batch == 0:
-                    print(f'batch {i}: loss = {loss}')
+                if i != 0 and i % log_batch == 0:
+                    print(f'batch {i}: loss = {cumu_loss / log_batch}')
+                    cumu_loss = 0
 
-            save_model = model.module if torch.cuda.device_count() > 1 else model
+            # save_model = model.module if torch.cuda.device_count() > 1 else model
+            save_model = model
             torch.save(save_model.state_dict(), chkpt_path)
             if phase == 'validation':
                 if cumu_loss / len(traces_dataset['validation']) < max_loss:
@@ -74,16 +85,25 @@ def train():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_args('-e', '--epochs', help='Number of Epochs', type=int, default=1000)
-    parser.add_args('-t', '--train', help='.pkl file containing the training traces', default='data/train.pkl')
-    parser.add_args('-v', '--val', help='.pkl file containing the validation traces', default='data/val.pkl')
-    parser.add_args('-c', '--chkpt', help='path to save checkpoint model to (.pth)', default='chkpt.pth')
-    parser.add_args('-b', '--best', help='path to save best model to (.pth)', default='best.pth')
+    parser.add_argument('-e', '--epochs', help='Number of Epochs', type=int, default=5)
+    parser.add_argument('-t', '--train', help='.pkl file containing the training traces', default='training_data.pkl')
+    parser.add_argument('-c', '--chkpt', help='path to save checkpoint model to (.pth)', default='chkpt.pth')
+    parser.add_argument('-b', '--best', help='path to save best model to (.pth)', default='best.pth')
     args = parser.parse_args()
 
+    with open(args.train, 'rb') as f:
+        training_data = pickle.load(f)
+
+    random.shuffle(training_data)
+    split = int(len(training_data) * train_ratio)
+    train_set = training_data[:split]
+    val_set = training_data[split:]
+    print(len(train_set), len(val_set))
+
     gpu_exists = torch.cuda.device_count() > 0
+    print(f'GPU: {int(gpu_exists)}')
 
     chkpt_path = args.chkpt
-    best_path = args.bes
+    best_path = args.best
 
     train()

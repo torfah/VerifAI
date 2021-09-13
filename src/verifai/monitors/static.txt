@@ -1,0 +1,5 @@
+init_position
+init_heading
+time_of_day
+clouds
+rain
