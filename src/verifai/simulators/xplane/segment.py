@@ -14,50 +14,44 @@ sample_rate = 1
 prediction_function = lambda i, d, ctes: all([c < 2 for c in ctes[i:i+d]])
 
 def segment_data():
-    training_data = []
+    traces = []
+    valid_samples, sample_count = 0, 0
     for file in os.listdir(os.path.join(args.dir, 'traces')):
-        if file.endswith('.pkl'):
-            filename = os.path.splitext(file)[0]
-            data = pd.read_pickle(file)
-
-            with open(os.path.join(args.dir, 'images')) as f:
-                images = pickle.load(f)
-
-            items = []
-            for col in data.columns:
-                if col != 'cte':
-                    items.append([float(value) for _, value in data[col].items()])
-
-            items.append(images)
+        filename = os.path.join(args.dir, 'traces', file)
+        if filename.endswith('.pkl'):
+            file_b = os.path.splitext(filename)[0]
+            data = pd.read_pickle(filename)
 
             ctes = [value for _, value in data['cte'].items()]
 
             # select indices from data to keep
             indices_to_keep = [0]
-    		prev_time = times[0]
-    		for i, time in enumerate(times[1:]):
-    			if time - prev_time > sample_rate:
-    				indices_to_keep.append(i+1)
-    				prev_time = time
+            prev_time = data.at[0, 'time']
+            for i, time in data['time'].items():
+                if i == 0:
+                    continue
+                if time - prev_time > sample_rate:
+                    indices_to_keep.append(i)
+                    prev_time = time
 
-            indexed_items = []
-            for item in items:
-                indexed_items.append([item[i] for i in indices_to_keep])
+            ctes = [ctes[i] for i in indices_to_keep]
 
-            assert all([len(items[0]) == len(item) for item in items]
+            n_items = len(indices_to_keep)
+            for i in range(n_items - (decision_window + horizon + input_window)):
+                trace = []
+                if i + input_window >= n_items - (decision_window + horizon + input_window):
+                    break 
+                for j in range(i, i + input_window):
+                    idx = indices_to_keep[j]
+                    for col in data.columns:
+                        trace.append((col, data.at[idx, col]))
+                index = i + horizon + input_window
+                prediction = prediction_function(index, decision_window, ctes)
+                traces.append((trace, prediction))
+                valid_samples += int(prediction)
+                sample_count += 1
 
-            n_items = len(items[0])
-    		for i in range(n_items - (decision_window + horizon + input_window)):
-    			concat_data = []
-    			for j in range(i, i + input_window):
-    				concat_data.append([item[j] for item in items])
-    			index = i + horizon + input_window
-    			prediction = prediction_function(index, decision_window, ctes)
-    			train_data.append((concat_data, prediction))
-    			valid_samples += int(prediction)
-    			sample_count += 1
-
-    return training_data, valid_samples, sample_count
+    return traces, valid_samples, sample_count
 
 
 
