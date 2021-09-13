@@ -1,26 +1,52 @@
 from sklearn import tree
-import pickle
+from joblib import dump, load
 import argparse
+import pickle
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_args('-t', '--traces', help='file path to traces', default='all.pkl')
-    parser.add_args('-s', '--model_save', help='file path to save model (.pkl)', default='model.pkl')
+    parser.add_argument('-t', '--traces', help='file path to traces', default='training_data.pkl')
+    parser.add_argument('-m', '--model_save', help='file path to save model (.pkl)', default='model.pkl')
+    parser.add_argument('-s', '--static', help='file specifying static parameters (.txt)', 
+                        default='static.txt')
     args = parser.parse_args()
+
+    with open(args.static) as f:
+        static_data = f.readlines()
+    static_data = set([line.rstrip() for line in static_data])
+    print(static_data)
 
     with open(args.traces, 'rb') as f:
         data = pickle.load(f)
 
-    X = [d[0] for d in data]
-    Y = [d[1] for d in data]
+    X, Y = [], []
+    for trace, satisfy in data:
+        new_trace = []
+        static_data = []
+        added_static = set()
+        for param, value in trace:
+            if type(value) == tuple: # keep this for now, for groundspeed data
+                value = value[0]
+            if param == 'time':
+                continue
+            if param == 'he' or param == 'cte':
+                continue
+            if param in static_data and param not in added_static:
+                static_data.append(float(value))
+                added_static.add(param)
+            elif param not in static_data:
+                new_trace.append(float(value))
+        X.append(static_data + new_trace)
+        Y.append(int(satisfy))
 
-    clf = tree.DecisionTreeClassifier()
+    print(len(X), len(Y))
+
+    print('Solving decision tree...')
+                
+    clf = tree.DecisionTreeClassifier(criterion='entropy')
     clf.fit(X, Y)
 
-    pickle.dumps(clf)
+    # tree.plot_tree(clf)
 
-    decision_tree_model_pkl = open(decision_tree_pkl_filename, 'wb')
-    pickle.dump(decision_tree_model, decision_tree_model_pkl)
-    # Close the pickle instances
-    decision_tree_model_pkl.close()
+    dump(clf, args.model_save)
