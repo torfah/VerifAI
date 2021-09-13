@@ -196,7 +196,7 @@ class XPlaneServer(verifai.server.Server):
             logger['time_of_day'].append(params['sim/time/zulu_time_sec'])
             logger['clouds'].append(params['sim/weather/cloud_type[0]'])
             logger['rain'].append(params['sim/weather/rain_percent'])
-            logger['groundspeed'].append(groundspeed)
+            logger['groundspeed'].append(groundspeed[0])
             logger['heading'].append(psi)
             logger['he'].append(heading_err)
             logger['cte'].append(cte)
